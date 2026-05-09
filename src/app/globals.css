@@ -1,0 +1,464 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url("https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Vazirmatn:wght@400;500;600;700&display=swap");
+
+/* ==========================================================================
+   Theme tokens
+   --ink-*       : Surface / chrome ramp (dark → light)
+   --parchment-* : Body text on dark surfaces
+   --ember-*     : Warm accent (orange/red)
+   --rune-*      : Cool accent (theme-specific)
+   --moss-*      : Tertiary natural accent
+   --blood-*     : Destructive
+   ========================================================================== */
+
+/* Served from /public — replace files to customize (see assets/backgrounds/README.md) */
+:root {
+  --body-bg-image: none;
+  --body-scrim: linear-gradient(
+    180deg,
+    rgb(var(--ink-950) / 0.55) 0%,
+    rgb(var(--ink-900) / 0.72) 45%,
+    rgb(var(--ink-950) / 0.78) 100%
+  );
+}
+
+:root,
+:root[data-theme="ink"] {
+  /* Dark fantasy — sampled from dark_fantasy.png:
+       darkest #070606 · midtones #1a2026/#2a2e34/#3f3f42
+       sunrise gold #e8ca9d · banner amber #c9882a
+       distant blue mist (added as cool accent) */
+  --ink-950: 7 9 13;     /* near-black, faint cool tint */
+  --ink-900: 14 18 24;   /* ≈ #1a2026 cloud shadow */
+  --ink-850: 22 26 34;
+  --ink-800: 32 36 44;   /* ≈ #2a2e34 castle stone */
+  --ink-700: 48 52 62;
+  --ink-600: 64 68 78;   /* ≈ #3f3f42 / #545356 */
+  --ink-500: 96 100 112;
+  --ink-400: 138 142 156;
+
+  --parchment-50: 245 236 214;
+  --parchment-100: 233 220 182;
+  --parchment-200: 212 192 138;
+
+  /* Warm sunrise + torch flame — from #e8ca9d / #c9882a / #7a4113 */
+  --ember-400: 232 202 157;
+  --ember-500: 211 152 74;
+  --ember-600: 162 99 38;
+
+  /* Cool steel blue — castle haze / distant mist */
+  --rune-300: 168 210 240;
+  --rune-400: 110 168 220;
+  --rune-500: 70 132 190;
+  --rune-600: 48 96 148;
+
+  /* Mossy valley green */
+  --moss-400: 127 176 105;
+  --moss-500: 93 144 71;
+
+  --blood-500: 164 36 59;
+  --blood-600: 124 26 44;
+
+  --body-base: linear-gradient(180deg, #07090d 0%, #0e1218 100%);
+  --body-bg-image: url("/assets/backgrounds/dark_fantasy.png");
+  --body-scrim: linear-gradient(
+    180deg,
+    rgb(7 9 13 / 0.62) 0%,
+    rgb(14 18 24 / 0.66) 45%,
+    rgb(7 9 13 / 0.78) 100%
+  );
+  --body-overlay:
+    radial-gradient(circle at 14% 10%, rgb(110 168 220 / 0.08), transparent 50%),
+    radial-gradient(circle at 86% 88%, rgb(211 152 74 / 0.08), transparent 55%);
+}
+
+:root[data-theme="desert"] {
+  /* Desert / oil rigs — sampled from desert_oilrigs.png:
+       sand shadow #20120a · dunes #3d2113/#562e19/#6f371a/#8b421c
+       backlit rust #a85020/#c76628 · sunset glow #e47f2e/#f9a43b
+       sun disk #fed666 (warmest highlight) */
+  --ink-950: 32 18 10;   /* ≈ #20120a sand in deep shadow */
+  --ink-900: 48 28 16;   /* ≈ #2e1c10 (between #3d2113 & #20120a) */
+  --ink-850: 61 33 19;   /* ≈ #3d2113 dune base */
+  --ink-800: 86 46 25;   /* ≈ #562e19 mid-dune */
+  --ink-700: 111 55 26;  /* ≈ #6f371a sunlit ridge */
+  --ink-600: 139 66 28;  /* ≈ #8b421c rust */
+  --ink-500: 168 80 32;  /* ≈ #a85020 lit rig */
+  --ink-400: 199 102 40; /* ≈ #c76628 sun-flare edge */
+
+  --parchment-50: 252 236 206;
+  --parchment-100: 244 216 168;
+  --parchment-200: 220 184 130;
+
+  /* Sun ramp — exact pixels: #fed666 / #f9a43b / #e47f2e */
+  --ember-400: 254 214 102;
+  --ember-500: 249 164 59;
+  --ember-600: 228 127 46;
+
+  /* No cool color exists in the image — use a low-saturation dusty teal
+     as a deliberate complementary accent so primary CTAs read on warm sand */
+  --rune-300: 158 206 196;
+  --rune-400: 110 174 162;
+  --rune-500: 64 136 124;
+  --rune-600: 40 100 90;
+
+  /* Brass / sand-gold (mid sand pixels) */
+  --moss-400: 201 150 100; /* ≈ #c19664 */
+  --moss-500: 159 122 81;  /* ≈ #9f7a51 */
+
+  /* Deep rust red — flare tip / oil-fire shadow */
+  --blood-500: 178 70 30;
+  --blood-600: 132 48 18;
+
+  --body-base: linear-gradient(180deg, #20120a 0%, #3d2113 45%, #20120a 100%);
+  --body-bg-image: url("/assets/backgrounds/desert_oilrigs.png");
+  --body-scrim: linear-gradient(
+    180deg,
+    rgb(32 18 10 / 0.55) 0%,
+    rgb(48 28 16 / 0.62) 45%,
+    rgb(20 10 6 / 0.78) 100%
+  );
+  --body-overlay:
+    radial-gradient(circle at 26% 30%, rgb(249 164 59 / 0.14), transparent 45%),
+    radial-gradient(circle at 78% 78%, rgb(110 174 162 / 0.06), transparent 50%);
+}
+
+:root[data-theme="cyberpunk"] {
+  /* Cyberpunk — sampled from cyberpunk.png:
+       deep night #03040c · indigo #0a0b1a/#11142a/#1e1e39
+       muted indigo midtones #2c2b4e/#433d6a/#676091
+       magenta neon #b150a3/#7a234b · billboard cyan glow */
+  --ink-950: 3 4 12;     /* ≈ #03040c sky */
+  --ink-900: 10 11 26;   /* ≈ #0a0b1a */
+  --ink-850: 17 20 42;   /* ≈ #11142a */
+  --ink-800: 30 30 57;   /* ≈ #1e1e39 */
+  --ink-700: 44 43 78;   /* ≈ #2c2b4e */
+  --ink-600: 67 61 106;  /* ≈ #433d6a */
+  --ink-500: 103 96 145; /* ≈ #676091 */
+  --ink-400: 140 130 180;
+
+  --parchment-50: 236 230 255;
+  --parchment-100: 204 196 234;
+  --parchment-200: 162 152 198;
+
+  /* Magenta neon — from billboards #b150a3 / #7a234b, brightened for accents */
+  --ember-400: 255 110 200;
+  --ember-500: 232 70 175;
+  --ember-600: 178 48 138;
+
+  /* Cyan/teal billboard reflections — iconic cyberpunk neon */
+  --rune-300: 144 252 248;
+  --rune-400: 56 226 236;
+  --rune-500: 22 178 200;
+  --rune-600: 14 122 148;
+
+  /* Violet neon (deep purple highlight) */
+  --moss-400: 178 138 248;
+  --moss-500: 126 90 214;
+
+  --blood-500: 240 56 112;
+  --blood-600: 188 28 84;
+
+  --body-base: linear-gradient(180deg, #03040c 0%, #0a0b1a 50%, #03040c 100%);
+  --body-bg-image: url("/assets/backgrounds/cyberpunk.png");
+  --body-scrim: linear-gradient(
+    180deg,
+    rgb(3 4 12 / 0.62) 0%,
+    rgb(10 11 26 / 0.7) 50%,
+    rgb(3 4 12 / 0.82) 100%
+  );
+  --body-overlay:
+    radial-gradient(circle at 18% 22%, rgb(56 226 236 / 0.1), transparent 45%),
+    radial-gradient(circle at 82% 78%, rgb(232 70 175 / 0.12), transparent 50%);
+}
+
+:root[data-theme="steampunk"] {
+  /* Steampunk — sampled from steampunk.png:
+       smoky night #0f0a05/#1e140b · sepia city #2e2012/#3e2d1c
+       lit brick #503c28/#664d34 · brass facade #826242/#9f7a51
+       lamplight gold #c19664/#e3bb81
+     (Notably more balanced sepia than desert's pure orange.) */
+  --ink-950: 15 10 5;    /* ≈ #0f0a05 */
+  --ink-900: 30 20 11;   /* ≈ #1e140b */
+  --ink-850: 46 32 18;   /* ≈ #2e2012 */
+  --ink-800: 62 45 28;   /* ≈ #3e2d1c */
+  --ink-700: 80 60 40;   /* ≈ #503c28 */
+  --ink-600: 102 77 52;  /* ≈ #664d34 */
+  --ink-500: 130 98 66;  /* ≈ #826242 */
+  --ink-400: 159 122 81; /* ≈ #9f7a51 */
+
+  --parchment-50: 244 226 196;
+  --parchment-100: 227 187 129; /* ≈ #e3bb81 lamplight */
+  --parchment-200: 193 150 100; /* ≈ #c19664 brass */
+
+  /* Brass / lamplight gold — from #e3bb81 / #c19664 / #9f7a51 */
+  --ember-400: 232 188 130;
+  --ember-500: 196 150 92;
+  --ember-600: 154 110 60;
+
+  /* Verdigris (oxidised brass) — deliberate cool complement, no cool exists in image */
+  --rune-300: 168 196 170;
+  --rune-400: 118 158 134;
+  --rune-500: 78 122 102;
+  --rune-600: 52 90 76;
+
+  /* Polished brass / gear gold */
+  --moss-400: 214 174 96;
+  --moss-500: 172 132 60;
+
+  /* Forge red — deep coal-fire amber */
+  --blood-500: 168 76 36;
+  --blood-600: 124 50 22;
+
+  --body-base: linear-gradient(180deg, #0f0a05 0%, #1e140b 45%, #0f0a05 100%);
+  --body-bg-image: url("/assets/backgrounds/steampunk.png");
+  --body-scrim: linear-gradient(
+    180deg,
+    rgb(15 10 5 / 0.6) 0%,
+    rgb(30 20 11 / 0.68) 50%,
+    rgb(15 10 5 / 0.82) 100%
+  );
+  --body-overlay:
+    radial-gradient(circle at 50% 30%, rgb(232 188 130 / 0.1), transparent 50%),
+    radial-gradient(circle at 12% 88%, rgb(15 10 5 / 0.35), transparent 45%);
+}
+
+/* ==========================================================================
+   Fonts (theme-agnostic)
+   --font-display : headings (Cinzel for English, Vazirmatn for Farsi)
+   --font-sans    : body (Inter for English, Vazirmatn for Farsi)
+   ========================================================================== */
+:root {
+  --font-display: "Cinzel";
+  --font-sans: "Inter";
+}
+:root[lang="fa"],
+html[lang="fa"] {
+  --font-display: "Vazirmatn";
+  --font-sans: "Vazirmatn";
+}
+
+:root {
+  color-scheme: dark;
+}
+
+html {
+  /* Fallback when body layers do not paint (e.g. overscroll) */
+  background-color: rgb(var(--ink-950));
+}
+
+html,
+body {
+  min-height: 100%;
+  color: rgb(var(--parchment-50));
+  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+body {
+  /* Do not use height: 100% on html/body — it caps the box to the viewport and
+     the background stops while content still scrolls. min-height lets the page grow. */
+  background-color: rgb(var(--ink-950));
+  /* First layer = top: color washes, then readability scrim, then art, then solid fallback */
+  background-image: var(--body-overlay), var(--body-scrim), var(--body-bg-image), var(--body-base);
+  background-size: auto, auto, cover, auto;
+  background-position: center, center, center, center;
+  background-repeat: no-repeat, no-repeat, no-repeat, no-repeat;
+  background-attachment: fixed, fixed, fixed, fixed;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: rgb(var(--ink-900)); }
+::-webkit-scrollbar-thumb {
+  background: rgb(var(--ink-600));
+  border-radius: 8px;
+  border: 2px solid rgb(var(--ink-900));
+}
+::-webkit-scrollbar-thumb:hover { background: rgb(var(--ink-500)); }
+
+/* ==========================================================================
+   Reusable components
+   ========================================================================== */
+@layer components {
+  .card {
+    @apply rounded-xl border border-ink-700/70 bg-card-gradient backdrop-blur-sm shadow-lg;
+  }
+  .card-hover {
+    @apply transition-all hover:border-rune-500/60 hover:shadow-glow;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-primary {
+    @apply btn bg-rune-500 text-ink-950 hover:bg-rune-400;
+  }
+  .btn-ghost {
+    @apply btn border border-ink-600 text-parchment-50 hover:border-rune-500/60 hover:text-rune-300;
+  }
+  .btn-danger {
+    @apply btn border border-blood-500/60 text-blood-500 hover:bg-blood-500/10;
+  }
+  .input {
+    @apply w-full rounded-md border border-ink-600 bg-ink-900/80 px-3 py-2 text-sm text-parchment-50 placeholder:text-ink-400 focus:border-rune-500 focus:outline-none focus:ring-1 focus:ring-rune-500;
+  }
+  .label {
+    @apply mb-1 block text-xs font-medium uppercase tracking-wider text-ink-400;
+  }
+  .chip {
+    @apply inline-flex items-center rounded-full border border-ink-600 bg-ink-800/80 px-2.5 py-0.5 text-xs text-parchment-100;
+  }
+  .heading-display {
+    @apply font-display tracking-wide text-parchment-50;
+  }
+  .section-title {
+    @apply text-xs font-semibold uppercase tracking-[0.2em] text-ink-400;
+  }
+}
+
+/* Farsi: don't uppercase labels — Persian script doesn't have case */
+html[lang="fa"] .label,
+html[lang="fa"] .section-title {
+  text-transform: none;
+  letter-spacing: 0;
+}
+html[lang="fa"] .heading-display {
+  letter-spacing: 0;
+}
+
+/* ==========================================================================
+   TipTap editor
+   ========================================================================== */
+.ProseMirror {
+  min-height: 240px;
+  outline: none;
+  color: rgb(var(--parchment-50));
+  line-height: 1.7;
+  font-family: var(--font-sans), sans-serif;
+}
+.ProseMirror h1,
+.ProseMirror h2,
+.ProseMirror h3 {
+  font-family: var(--font-display), serif;
+  color: rgb(var(--parchment-50));
+  margin-top: 1.2em;
+  margin-bottom: 0.4em;
+}
+.ProseMirror h1 { font-size: 1.6rem; }
+.ProseMirror h2 { font-size: 1.3rem; }
+.ProseMirror h3 { font-size: 1.1rem; }
+.ProseMirror p { margin-bottom: 0.8em; }
+.ProseMirror ul,
+.ProseMirror ol { padding-inline-start: 1.4em; margin-bottom: 0.8em; }
+.ProseMirror ul { list-style: disc; }
+.ProseMirror ol { list-style: decimal; }
+.ProseMirror a { color: rgb(var(--rune-400)); text-decoration: underline; }
+.ProseMirror code {
+  background: rgb(var(--ink-800));
+  padding: 0.1em 0.35em;
+  border-radius: 4px;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.9em;
+}
+.ProseMirror blockquote {
+  border-inline-start: 3px solid rgb(var(--rune-500));
+  padding-inline-start: 1em;
+  color: rgb(var(--parchment-200));
+  font-style: italic;
+  margin: 1em 0;
+}
+.ProseMirror p.is-editor-empty:first-child::before {
+  color: rgb(var(--ink-400));
+  content: attr(data-placeholder);
+  float: inline-start;
+  height: 0;
+  pointer-events: none;
+}
+
+/* ==========================================================================
+   Wiki readonly content
+   ========================================================================== */
+.wiki-content {
+  color: rgb(var(--parchment-50));
+  line-height: 1.75;
+  font-family: var(--font-sans), sans-serif;
+}
+.wiki-content h1,
+.wiki-content h2,
+.wiki-content h3 {
+  font-family: var(--font-display), serif;
+  color: rgb(var(--parchment-50));
+  margin-top: 1.4em;
+  margin-bottom: 0.5em;
+}
+.wiki-content h1 { font-size: 1.7rem; }
+.wiki-content h2 { font-size: 1.35rem; }
+.wiki-content h3 { font-size: 1.1rem; }
+.wiki-content p { margin-bottom: 0.9em; }
+.wiki-content ul, .wiki-content ol { padding-inline-start: 1.4em; margin-bottom: 0.9em; }
+.wiki-content ul { list-style: disc; }
+.wiki-content ol { list-style: decimal; }
+.wiki-content a { color: rgb(var(--rune-400)); text-decoration: underline; }
+.wiki-content blockquote {
+  border-inline-start: 3px solid rgb(var(--rune-500));
+  padding-inline-start: 1em;
+  color: rgb(var(--parchment-200));
+  font-style: italic;
+  margin: 1em 0;
+}
+.wiki-content code {
+  background: rgb(var(--ink-800));
+  padding: 0.1em 0.35em;
+  border-radius: 4px;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.9em;
+}
+
+/* ==========================================================================
+   Leaflet (themed)
+   ========================================================================== */
+.leaflet-container {
+  background: rgb(var(--ink-900)) !important;
+  font-family: var(--font-sans), sans-serif !important;
+}
+.leaflet-control-zoom a {
+  background: rgb(var(--ink-800)) !important;
+  color: rgb(var(--parchment-50)) !important;
+  border-color: rgb(var(--ink-600)) !important;
+}
+.leaflet-control-zoom a:hover {
+  background: rgb(var(--ink-700)) !important;
+  color: rgb(var(--rune-400)) !important;
+}
+.leaflet-popup-content-wrapper,
+.leaflet-popup-tip {
+  background: rgb(var(--ink-800)) !important;
+  color: rgb(var(--parchment-50)) !important;
+  border: 1px solid rgb(var(--ink-600)) !important;
+}
+.leaflet-popup-content a {
+  color: rgb(var(--rune-400)) !important;
+}
+
+/* ==========================================================================
+   React Flow (themed)
+   ========================================================================== */
+.react-flow__node {
+  font-family: var(--font-sans), sans-serif;
+}
+.react-flow__attribution {
+  background: rgb(var(--ink-900) / 0.6) !important;
+  color: rgb(var(--ink-400)) !important;
+}
+
+/* ==========================================================================
+   RTL adjustments
+   ========================================================================== */
+[dir="rtl"] .timeline-rail {
+  border-inline-start-width: 2px;
+  border-inline-end-width: 0;
+}

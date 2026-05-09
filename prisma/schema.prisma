@@ -1,0 +1,294 @@
+// Local-first worldbuilding schema.
+// SQLite-friendly: uses string ids (cuid) and text for tags/JSON-like fields.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// World - top level container for everything
+// ---------------------------------------------------------------------------
+model World {
+  id          String   @id @default(cuid())
+  name        String
+  tagline     String?
+  description String?
+  coverImage  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  regions      Region[]
+  characters   Character[]
+  factions     Faction[]
+  events       TimelineEvent[]
+  wikiPages    WikiPage[]
+  maps         WorldMap[]
+  familyTrees  FamilyTree[]
+}
+
+// ---------------------------------------------------------------------------
+// Region / Zone
+// ---------------------------------------------------------------------------
+model Region {
+  id          String   @id @default(cuid())
+  worldId     String
+  name        String
+  description String?
+  rulerId     String?  // a character id
+  resources   String?  // free text or JSON
+  settlements String?  // free text list
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  world      World      @relation(fields: [worldId], references: [id], onDelete: Cascade)
+  ruler      Character? @relation("RegionRuler", fields: [rulerId], references: [id], onDelete: SetNull)
+
+  factions    RegionFaction[]
+  characters  Character[]      @relation("CharacterCurrentRegion")
+  events      TimelineEvent[]
+  wikiLinks   WikiPage[]       @relation("RegionWikiLinks")
+  maps        WorldMap[]
+
+  @@index([worldId])
+}
+
+// ---------------------------------------------------------------------------
+// Faction
+// ---------------------------------------------------------------------------
+model Faction {
+  id          String   @id @default(cuid())
+  worldId     String
+  name        String
+  banner      String?
+  description String?
+  motto       String?
+  alignment   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  world       World            @relation(fields: [worldId], references: [id], onDelete: Cascade)
+  members     Character[]      @relation("CharacterFaction")
+  regions     RegionFaction[]
+  events      TimelineEvent[]
+  wikiLinks   WikiPage[]       @relation("FactionWikiLinks")
+
+  @@index([worldId])
+}
+
+// Many-to-many: a region can have many factions present
+model RegionFaction {
+  regionId  String
+  factionId String
+
+  region  Region  @relation(fields: [regionId], references: [id], onDelete: Cascade)
+  faction Faction @relation(fields: [factionId], references: [id], onDelete: Cascade)
+
+  @@id([regionId, factionId])
+}
+
+// ---------------------------------------------------------------------------
+// Character
+// ---------------------------------------------------------------------------
+model Character {
+  id           String   @id @default(cuid())
+  worldId      String
+  name         String
+  title        String?
+  portrait     String?
+  biography    String?
+  birthYear    Int?
+  deathYear    Int?
+  status       String?  // alive, dead, missing, etc.
+  notes        String?
+  factionId    String?
+  currentRegionId String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  world         World     @relation(fields: [worldId], references: [id], onDelete: Cascade)
+  faction       Faction?  @relation("CharacterFaction", fields: [factionId], references: [id], onDelete: SetNull)
+  currentRegion Region?   @relation("CharacterCurrentRegion", fields: [currentRegionId], references: [id], onDelete: SetNull)
+
+  rules         Region[]  @relation("RegionRuler")
+  events        TimelineEvent[]
+  wikiLinks     WikiPage[] @relation("CharacterWikiLinks")
+
+  // family relationships
+  parentLinks   FamilyMember[] @relation("FamilyMemberPerson")
+
+  // self-referencing parent/spouse handled via FamilyEdge below
+}
+
+// ---------------------------------------------------------------------------
+// Family Tree
+// ---------------------------------------------------------------------------
+model FamilyTree {
+  id          String   @id @default(cuid())
+  worldId     String
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  world   World          @relation(fields: [worldId], references: [id], onDelete: Cascade)
+  members FamilyMember[]
+  edges   FamilyEdge[]
+
+  @@index([worldId])
+}
+
+// A FamilyMember is a placement of a Character inside a particular tree.
+model FamilyMember {
+  id          String  @id @default(cuid())
+  treeId      String
+  characterId String
+  // optional layout coords for React Flow
+  x           Float?
+  y           Float?
+
+  tree      FamilyTree @relation(fields: [treeId], references: [id], onDelete: Cascade)
+  character Character  @relation("FamilyMemberPerson", fields: [characterId], references: [id], onDelete: Cascade)
+
+  edgesFrom FamilyEdge[] @relation("FromMember")
+  edgesTo   FamilyEdge[] @relation("ToMember")
+
+  @@unique([treeId, characterId])
+}
+
+// Edge between two members. type: parent | spouse
+model FamilyEdge {
+  id       String @id @default(cuid())
+  treeId   String
+  fromId   String
+  toId     String
+  type     String // "parent" (from -> child to) or "spouse" (between two)
+
+  tree   FamilyTree   @relation(fields: [treeId], references: [id], onDelete: Cascade)
+  from   FamilyMember @relation("FromMember", fields: [fromId], references: [id], onDelete: Cascade)
+  to     FamilyMember @relation("ToMember", fields: [toId], references: [id], onDelete: Cascade)
+
+  @@index([treeId])
+}
+
+// ---------------------------------------------------------------------------
+// Timeline events
+// ---------------------------------------------------------------------------
+model TimelineEvent {
+  id          String   @id @default(cuid())
+  worldId     String
+  title       String
+  description String?
+  year        Int
+  monthDay    String?  // optional "MM-DD" for finer ordering
+  era         String?  // optional era label, e.g. "Age of Embers"
+  category    String?  // battle, founding, discovery, etc.
+  regionId    String?
+  factionId   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  world      World      @relation(fields: [worldId], references: [id], onDelete: Cascade)
+  region     Region?    @relation(fields: [regionId], references: [id], onDelete: SetNull)
+  faction    Faction?   @relation(fields: [factionId], references: [id], onDelete: SetNull)
+  characters Character[]
+  wikiLinks  WikiPage[] @relation("EventWikiLinks")
+  pins       MapPin[]
+
+  @@index([worldId, year])
+}
+
+// ---------------------------------------------------------------------------
+// Wiki
+// ---------------------------------------------------------------------------
+model WikiPage {
+  id          String   @id @default(cuid())
+  worldId     String
+  title       String
+  slug        String
+  category    String   // characters, places, factions, religions, items, events, magic
+  tags        String?  // comma-separated
+  content     String   // markdown / tiptap HTML
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  world      World            @relation(fields: [worldId], references: [id], onDelete: Cascade)
+  // links to other entities
+  characters Character[]      @relation("CharacterWikiLinks")
+  regions    Region[]         @relation("RegionWikiLinks")
+  factions   Faction[]        @relation("FactionWikiLinks")
+  events     TimelineEvent[]  @relation("EventWikiLinks")
+  pins       MapPin[]
+
+  // wiki-to-wiki internal links
+  outgoingLinks WikiLink[] @relation("LinkFrom")
+  incomingLinks WikiLink[] @relation("LinkTo")
+
+  @@unique([worldId, slug])
+  @@index([worldId, category])
+}
+
+model WikiLink {
+  id     String @id @default(cuid())
+  fromId String
+  toId   String
+
+  from WikiPage @relation("LinkFrom", fields: [fromId], references: [id], onDelete: Cascade)
+  to   WikiPage @relation("LinkTo",   fields: [toId],   references: [id], onDelete: Cascade)
+
+  @@unique([fromId, toId])
+}
+
+// ---------------------------------------------------------------------------
+// Maps
+// ---------------------------------------------------------------------------
+model WorldMap {
+  id          String   @id @default(cuid())
+  worldId     String
+  parentMapId String?  // nested maps: world -> continent -> city
+  regionId    String?
+  name        String
+  description String?
+  imagePath   String   // path under /uploads/...
+  width       Int      @default(2000)
+  height      Int      @default(1500)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  world     World      @relation(fields: [worldId], references: [id], onDelete: Cascade)
+  parent    WorldMap?  @relation("NestedMaps", fields: [parentMapId], references: [id], onDelete: SetNull)
+  children  WorldMap[] @relation("NestedMaps")
+  region    Region?    @relation(fields: [regionId], references: [id], onDelete: SetNull)
+  pins      MapPin[]
+
+  @@index([worldId])
+}
+
+// A pin on a map. Coordinates are pixel-space against the map image.
+// linkType discriminates which optional id is set.
+model MapPin {
+  id        String  @id @default(cuid())
+  mapId     String
+  label     String
+  x         Float
+  y         Float
+  color     String? // hex
+  icon      String? // optional emoji / icon key
+  linkType  String  // "region" | "character" | "event" | "wiki" | "map" | "none"
+
+  regionId    String?
+  characterId String?
+  eventId     String?
+  wikiPageId  String?
+  childMapId  String?
+
+  map         WorldMap        @relation(fields: [mapId], references: [id], onDelete: Cascade)
+  event       TimelineEvent?  @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  wikiPage    WikiPage?       @relation(fields: [wikiPageId], references: [id], onDelete: SetNull)
+
+  @@index([mapId])
+}
