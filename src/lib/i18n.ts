@@ -108,6 +108,22 @@ const en = {
     'Delete "{name}" and ALL of its contents? This cannot be undone.',
   "world.cover.replaceHint": "Upload to replace the existing cover.",
 
+  // World export / import
+  "world.transfer.section": "Backup & transfer",
+  "world.transfer.export.title": "Export world",
+  "world.transfer.export.description":
+    "Download a .kcworld.zip archive with all regions, characters, wiki, maps, images, and family trees.",
+  "world.transfer.export.button": "Download archive",
+  "world.transfer.import.title": "Import world",
+  "world.transfer.import.description":
+    "Restore a world from a .kcworld.zip file exported from Kitty Creative World (this app or another install).",
+  "world.transfer.import.file": "Archive file",
+  "world.transfer.import.submit": "Import world",
+  "world.transfer.import.submitting": "Importing…",
+  "world.transfer.import.hint": "Max 100 MB. Use an unmodified export from this app.",
+
+  "worlds.transfer.section": "Import a world",
+
   // Characters
   "characters.eyebrow": "Cast",
   "characters.title": "Characters",
@@ -490,6 +506,21 @@ const fa: Record<keyof typeof en, string> = {
   "world.deleteConfirm":
     "حذف «{name}» و همه‌ی محتوای آن؟ این عمل قابل بازگشت نیست.",
   "world.cover.replaceHint": "برای جایگزینی کاور فایل جدید آپلود کنید.",
+
+  "world.transfer.section": "پشتیبان‌گیری و انتقال",
+  "world.transfer.export.title": "خروجی جهان",
+  "world.transfer.export.description":
+    "یک فایل .kcworld.zip شامل مناطق، شخصیت‌ها، دانشنامه، نقشه‌ها، تصاویر و شجره‌نامه‌ها دانلود کنید.",
+  "world.transfer.export.button": "دانلود آرشیو",
+  "world.transfer.import.title": "ورود جهان",
+  "world.transfer.import.description":
+    "جهانی را از فایل .kcworld.zip که از Kitty Creative World صادر شده بازیابی کنید.",
+  "world.transfer.import.file": "فایل آرشیو",
+  "world.transfer.import.submit": "ورود جهان",
+  "world.transfer.import.submitting": "در حال ورود…",
+  "world.transfer.import.hint": "حداکثر ۱۰۰ مگابایت. از خروجی تغییر‌نیافته‌ی همین برنامه استفاده کنید.",
+
+  "worlds.transfer.section": "ورود یک جهان",
 
   "characters.eyebrow": "شخصیت‌ها",
   "characters.title": "شخصیت‌ها",

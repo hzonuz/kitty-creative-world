@@ -5,6 +5,7 @@ import { AppShell } from "@/components/shell/AppShell";
 import { RootSidebar } from "@/components/shell/RootSidebar";
 import { PageHeader } from "@/components/shell/PageHeader";
 import { EmptyState } from "@/components/shell/EmptyState";
+import { WorldImportForm } from "@/components/worlds/WorldImportForm";
 import { tServer } from "@/lib/preferences";
 
 export const dynamic = "force-dynamic";
@@ -102,6 +103,22 @@ export default async function HomePage() {
           ))}
         </div>
       )}
+
+      <div className="mt-12 max-w-xl">
+        <h2 className="section-title mb-4 px-1">
+          {tServer("worlds.transfer.section")}
+        </h2>
+        <WorldImportForm
+          labels={{
+            title: tServer("world.transfer.import.title"),
+            description: tServer("world.transfer.import.description"),
+            fileLabel: tServer("world.transfer.import.file"),
+            submit: tServer("world.transfer.import.submit"),
+            submitting: tServer("world.transfer.import.submitting"),
+            hint: tServer("world.transfer.import.hint"),
+          }}
+        />
+      </div>
     </AppShell>
   );
 }

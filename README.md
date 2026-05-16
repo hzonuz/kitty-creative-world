@@ -107,8 +107,21 @@ A **World** is the root of everything. Inside a world you have:
 - **Family trees** — nodes are characters, edges are `parent` or `spouse`, rendered with React Flow.
 - **Maps** — uploaded images shown via Leaflet's `CRS.Simple`. Drop **pins** that link to a region, character, event, wiki page, or another nested map (world → continent → city).
 
+## Export & import worlds
+
+Move a full world between machines (or Kitty Creative World installs) with a **`.kcworld.zip`** archive.
+
+| Location | Action |
+| -------- | ------ |
+| **Edit world** | **Download archive** exports that world; **Import world** restores from a zip |
+| **All worlds** (home) | **Import world** only — adds a new world from a zip |
+
+The archive contains `manifest.json`, `data.json` (all entities and links), and `assets/uploads/…` (cover images, portraits, map images, etc.).
+
+**To migrate:** export on the source machine → copy the `.kcworld.zip` → import on the target machine.
+
 ## Notes
 
-- All data is stored in `prisma/dev.db` (SQLite) plus images on disk in `public/uploads/`. Back up these two locations and you've backed up everything.
+- All data is stored in `prisma/dev.db` (SQLite) plus images on disk in `public/uploads/`. Back up these two locations and you've backed up everything — or use export/import for a portable snapshot.
 - This is intentionally **not** built for multi-user, network deployment, or scale. It's a personal tool.
 - The TipTap editor stores HTML directly in the DB. You can swap to raw markdown later if you prefer; the schema field is just a string.

@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/shell/PageHeader";
 import { DeleteButton } from "@/components/shell/DeleteButton";
+import { WorldTransferPanel } from "@/components/worlds/WorldTransferPanel";
 import { deleteWorld, updateWorld } from "@/app/actions/worlds";
 import { tServer } from "@/lib/preferences";
 
@@ -97,6 +98,24 @@ export default async function EditWorldPage({
           </Link>
         </div>
       </form>
+
+      <div className="mt-10 max-w-2xl">
+        <WorldTransferPanel
+          worldId={world.id}
+          labels={{
+            sectionTitle: tServer("world.transfer.section"),
+            exportTitle: tServer("world.transfer.export.title"),
+            exportDescription: tServer("world.transfer.export.description"),
+            exportButton: tServer("world.transfer.export.button"),
+            importTitle: tServer("world.transfer.import.title"),
+            importDescription: tServer("world.transfer.import.description"),
+            importFileLabel: tServer("world.transfer.import.file"),
+            importSubmit: tServer("world.transfer.import.submit"),
+            importSubmitting: tServer("world.transfer.import.submitting"),
+            importHint: tServer("world.transfer.import.hint"),
+          }}
+        />
+      </div>
     </>
   );
 }
