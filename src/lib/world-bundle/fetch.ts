@@ -16,6 +16,7 @@ import type {
   FamilyEdgeRecord,
 } from "./types";
 import { BUNDLE_VERSION } from "./types";
+import { sanitizeWorldBundle } from "./sanitize";
 
 function iso(d: Date): string {
   return d.toISOString();
@@ -219,7 +220,7 @@ export async function fetchWorldBundle(worldId: string): Promise<WorldBundle> {
     })),
   );
 
-  return {
+  return sanitizeWorldBundle({
     version: BUNDLE_VERSION,
     world: worldRecord,
     regions,
@@ -234,5 +235,5 @@ export async function fetchWorldBundle(worldId: string): Promise<WorldBundle> {
     familyTrees,
     familyMembers,
     familyEdges,
-  };
+  });
 }

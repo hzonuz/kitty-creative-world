@@ -2,13 +2,23 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { SidebarNav } from "./SidebarNav";
 import { tServer } from "@/lib/preferences";
+import { getCurrentUser } from "@/lib/auth";
 
 export async function RootSidebar() {
-  const worlds = await prisma.world.findMany({
-    orderBy: { updatedAt: "desc" },
-    select: { id: true, name: true },
-    take: 30,
-  });
+  const user = await getCurrentUser();
+  const worlds = user
+    ? await prisma.world.findMany({
+        where: {
+          OR: [
+            { ownerId: user.id },
+            { memberships: { some: { userId: user.id } } },
+          ],
+        },
+        orderBy: { updatedAt: "desc" },
+        select: { id: true, name: true },
+        take: 30,
+      })
+    : [];
 
   return (
     <div className="flex flex-1 flex-col gap-6">

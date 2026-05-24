@@ -1,0 +1,17 @@
+node_modules
+.next
+.git
+.gitignore
+.env
+.env.local
+.env.*.local
+*.log
+README.md
+.vscode
+.idea
+.cursor
+.DS_Store
+prisma/dev.db
+prisma/dev.db-journal
+public/uploads
+coverage

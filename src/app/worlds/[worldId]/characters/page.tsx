@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/shell/PageHeader";
 import { EmptyState } from "@/components/shell/EmptyState";
 import { tServer } from "@/lib/preferences";
+import { assetUrl } from "@/lib/assetUrl";
 
 export const dynamic = "force-dynamic";
 
@@ -58,7 +59,7 @@ export default async function CharactersPage({
             >
               <div className="relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-md border border-ink-700 bg-ink-800">
                 {c.portrait ? (
-                  <Image src={c.portrait} alt={c.name} fill className="object-cover" />
+                  <Image src={assetUrl(c.portrait) ?? ""} alt={c.name} fill className="object-cover" />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center text-2xl text-ink-400">
                     👤

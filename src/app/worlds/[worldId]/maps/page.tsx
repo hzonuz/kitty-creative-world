@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/shell/PageHeader";
 import { EmptyState } from "@/components/shell/EmptyState";
 import { tServer } from "@/lib/preferences";
+import { assetUrl } from "@/lib/assetUrl";
 
 export const dynamic = "force-dynamic";
 
@@ -55,7 +56,7 @@ export default async function MapsPage({
             >
               <div className="relative aspect-[16/9] w-full bg-ink-800">
                 <Image
-                  src={m.imagePath}
+                  src={assetUrl(m.imagePath) ?? ""}
                   alt={m.name}
                   fill
                   className="object-cover"

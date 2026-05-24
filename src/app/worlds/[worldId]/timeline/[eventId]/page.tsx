@@ -6,6 +6,8 @@ import { DeleteButton } from "@/components/shell/DeleteButton";
 import { deleteEvent } from "@/app/actions/timeline";
 import { formatYear } from "@/lib/slug";
 import { tServer } from "@/lib/preferences";
+import { CommentSection } from "@/components/comments/CommentSection";
+import { getWorldAccess } from "@/lib/permissions";
 
 export const dynamic = "force-dynamic";
 
@@ -25,6 +27,7 @@ export default async function EventDetailPage({
   });
   if (!event || event.worldId !== params.worldId) notFound();
 
+  const access = await getWorldAccess(params.worldId);
   const remove = deleteEvent.bind(null, params.worldId, event.id);
   const base = `/worlds/${params.worldId}`;
 
@@ -34,16 +37,18 @@ export default async function EventDetailPage({
         eyebrow={`${formatYear(event.year, event.era)}${event.category ? ` · ${event.category}` : ""}`}
         title={event.title}
         actions={
-          <>
-            <Link href={`${base}/timeline/${event.id}/edit`} className="btn-ghost">
-              {tServer("common.edit")}
-            </Link>
-            <DeleteButton
-              action={remove}
-              redirectTo={`${base}/timeline`}
-              confirmText={tServer("event.deleteConfirm", { name: event.title })}
-            />
-          </>
+          access?.canEdit ? (
+            <>
+              <Link href={`${base}/timeline/${event.id}/edit`} className="btn-ghost">
+                {tServer("common.edit")}
+              </Link>
+              <DeleteButton
+                action={remove}
+                redirectTo={`${base}/timeline`}
+                confirmText={tServer("event.deleteConfirm", { name: event.title })}
+              />
+            </>
+          ) : null
         }
       />
 
@@ -121,6 +126,13 @@ export default async function EventDetailPage({
           </SidePanel>
         </aside>
       </div>
+
+      <CommentSection
+        worldId={params.worldId}
+        entityType="EVENT"
+        entityId={event.id}
+        revalidate={`/worlds/${params.worldId}/timeline/${event.id}`}
+      />
     </>
   );
 }

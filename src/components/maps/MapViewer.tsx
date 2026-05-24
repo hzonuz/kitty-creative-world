@@ -46,6 +46,7 @@ export function MapViewer({
   events,
   wikiPages,
   childMaps,
+  canEdit = false,
 }: {
   worldId: string;
   mapId: string;
@@ -58,6 +59,7 @@ export function MapViewer({
   events: Option[];
   wikiPages: { id: string; title: string; slug: string }[];
   childMaps: Option[];
+  canEdit?: boolean;
 }) {
   const t = useT();
   const router = useRouter();
@@ -88,13 +90,15 @@ export function MapViewer({
             <span className="text-ember-500">{t("map.viewer.editingHint")}</span>
           ) : null}
         </p>
-        <button
-          type="button"
-          className={editing ? "btn-primary" : "btn-ghost"}
-          onClick={() => setEditing((v) => !v)}
-        >
-          {editing ? t("map.viewer.doneEditing") : t("map.viewer.addPin")}
-        </button>
+        {canEdit ? (
+          <button
+            type="button"
+            className={editing ? "btn-primary" : "btn-ghost"}
+            onClick={() => setEditing((v) => !v)}
+          >
+            {editing ? t("map.viewer.doneEditing") : t("map.viewer.addPin")}
+          </button>
+        ) : null}
       </div>
 
       <div className="card overflow-hidden">

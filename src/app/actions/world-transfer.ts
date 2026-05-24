@@ -3,10 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { importWorldFromZip } from "@/lib/world-bundle";
+import { requireUser } from "@/lib/auth";
 
 const MAX_ARCHIVE_BYTES = 100 * 1024 * 1024; // 100 MB
 
 export async function importWorldArchive(formData: FormData) {
+  const user = await requireUser();
   const file = formData.get("archive") as File | null;
 
   if (!file || file.size === 0) {
@@ -26,7 +28,7 @@ export async function importWorldArchive(formData: FormData) {
 
   let worldId: string;
   try {
-    worldId = await importWorldFromZip(buffer);
+    worldId = await importWorldFromZip(buffer, user.id);
   } catch (err) {
     const message =
       err instanceof Error ? err.message : "Import failed unexpectedly.";

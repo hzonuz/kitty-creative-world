@@ -5,9 +5,11 @@ import { tServer } from "@/lib/preferences";
 export function WorldSidebar({
   worldId,
   worldName,
+  canManage,
 }: {
   worldId: string;
   worldName: string;
+  canManage?: boolean;
 }) {
   const base = `/worlds/${worldId}`;
   return (
@@ -27,6 +29,15 @@ export function WorldSidebar({
             { href: `${base}/timeline`, label: tServer("nav.timeline"), icon: "⌛" },
             { href: `${base}/wiki`, label: tServer("nav.wiki"), icon: "📖" },
             { href: `${base}/family`, label: tServer("nav.familyTrees"), icon: "🌳" },
+            ...(canManage
+              ? [
+                  {
+                    href: `${base}/members`,
+                    label: tServer("nav.members"),
+                    icon: "🤝",
+                  },
+                ]
+              : []),
           ]}
         />
       </div>

@@ -88,12 +88,12 @@ export function SettingsMenu({ theme }: { theme: Theme }) {
                 {t("settings.theme.ink")}
               </Pill>
               <Pill
-                active={theme === "desert"}
+                active={theme === "dieselpunk"}
                 disabled={pending}
-                onClick={() => changeTheme("desert")}
+                onClick={() => changeTheme("dieselpunk")}
               >
                 <span className="me-1.5 text-ember-400">☀</span>
-                {t("settings.theme.desert")}
+                {t("settings.theme.dieselpunk")}
               </Pill>
               <Pill
                 active={theme === "cyberpunk"}

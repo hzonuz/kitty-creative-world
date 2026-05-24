@@ -3,12 +3,14 @@ import { PageHeader } from "@/components/shell/PageHeader";
 import { CharacterForm } from "@/components/characters/CharacterForm";
 import { createCharacter } from "@/app/actions/characters";
 import { tServer } from "@/lib/preferences";
+import { requirePageEdit } from "@/lib/permissions";
 
 export default async function NewCharacterPage({
   params,
 }: {
   params: { worldId: string };
 }) {
+  await requirePageEdit(params.worldId);
   const [factions, regions] = await Promise.all([
     prisma.faction.findMany({
       where: { worldId: params.worldId },

@@ -49,7 +49,7 @@ pnpm-debug.log*
 .prettiercache
 
 # -----------------------------------------------------------------------------
-# Prisma + SQLite (local-first data)
+# Legacy local-first artifacts (now Postgres + MinIO based)
 # -----------------------------------------------------------------------------
 prisma/*.db
 prisma/*.db-journal
@@ -59,10 +59,15 @@ prisma/*.db-shm
 *.sqlite3
 
 # -----------------------------------------------------------------------------
-# Local uploads (keep directory, ignore user files)
+# Legacy local uploads (now stored in MinIO)
 # -----------------------------------------------------------------------------
 public/uploads/*
 !public/uploads/.gitkeep
+
+# -----------------------------------------------------------------------------
+# Docker volumes (in case of local-driver volume mounts)
+# -----------------------------------------------------------------------------
+docker/.data/
 
 # -----------------------------------------------------------------------------
 # OS

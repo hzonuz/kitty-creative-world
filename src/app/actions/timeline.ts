@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { requireWorldAccess } from "@/lib/permissions";
 
 function readForm(formData: FormData) {
   const title = String(formData.get("title") ?? "").trim();
@@ -19,6 +20,7 @@ function readForm(formData: FormData) {
 }
 
 export async function createEvent(worldId: string, formData: FormData) {
+  await requireWorldAccess(worldId, "editor");
   const data = readForm(formData);
   if (!data.title) throw new Error("Title is required");
   if (!Number.isFinite(data.year)) throw new Error("Year is required");
@@ -49,6 +51,7 @@ export async function updateEvent(
   id: string,
   formData: FormData,
 ) {
+  await requireWorldAccess(worldId, "editor");
   const data = readForm(formData);
   if (!data.title) throw new Error("Title is required");
   if (!Number.isFinite(data.year)) throw new Error("Year is required");
@@ -76,6 +79,7 @@ export async function updateEvent(
 }
 
 export async function deleteEvent(worldId: string, id: string) {
+  await requireWorldAccess(worldId, "editor");
   await prisma.timelineEvent.delete({ where: { id } });
   revalidatePath(`/worlds/${worldId}/timeline`);
 }

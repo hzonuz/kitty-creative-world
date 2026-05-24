@@ -3,12 +3,14 @@ import { PageHeader } from "@/components/shell/PageHeader";
 import { MapForm } from "@/components/maps/MapForm";
 import { createMap } from "@/app/actions/maps";
 import { tServer } from "@/lib/preferences";
+import { requirePageEdit } from "@/lib/permissions";
 
 export default async function NewMapPage({
   params,
 }: {
   params: { worldId: string };
 }) {
+  await requirePageEdit(params.worldId);
   const [parents, regions] = await Promise.all([
     prisma.worldMap.findMany({
       where: { worldId: params.worldId },

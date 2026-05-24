@@ -4,9 +4,11 @@ import type { WorldBundle, WorldMapRecord } from "./types";
 import {
   collectUploadPaths,
   importAssetsFromZip,
-  remapPath,
+  remapKey,
   rewritePathsInText,
 } from "./assets";
+import { sanitizeWorldBundle } from "./sanitize";
+import { WorldRole } from "@prisma/client";
 
 class IdMap {
   private readonly map = new Map<string, string>();
@@ -21,9 +23,22 @@ class IdMap {
     return v;
   }
 
-  optional(oldId: string | null | undefined): string | undefined {
+  lookup(oldId: string | null | undefined): string | undefined {
     if (!oldId) return undefined;
-    return this.get(oldId);
+    return this.map.get(oldId);
+  }
+
+  optional(oldId: string | null | undefined): string | undefined {
+    return this.lookup(oldId);
+  }
+
+  connect(oldIds: string[]): { id: string }[] {
+    const out: { id: string }[] = [];
+    for (const oldId of oldIds) {
+      const newId = this.lookup(oldId);
+      if (newId) out.push({ id: newId });
+    }
+    return out;
   }
 }
 
@@ -49,243 +64,262 @@ function sortMapsByParent(maps: WorldMapRecord[]): WorldMapRecord[] {
   return sorted;
 }
 
-export async function importWorldFromZip(buffer: Buffer): Promise<string> {
+export async function importWorldFromZip(
+  buffer: Buffer,
+  ownerId: string,
+): Promise<string> {
   const { parseWorldZip } = await import("./zip");
   const { bundle, zip } = await parseWorldZip(buffer);
-  return importWorldBundle(bundle, zip);
+  return importWorldBundle(bundle, zip, ownerId);
 }
 
 export async function importWorldBundle(
   bundle: WorldBundle,
   zip: JSZip,
+  ownerId: string,
   importedName?: string,
 ): Promise<string> {
-  const assetPaths = collectUploadPaths(bundle);
-  const pathMap = await importAssetsFromZip(zip, assetPaths);
+  if (!ownerId) throw new Error("Import requires an owner");
 
+  const clean = sanitizeWorldBundle(bundle);
+
+  // Create the world shell up-front so we have an id to scope new asset keys.
+  const world = await prisma.world.create({
+    data: {
+      ownerId,
+      name: importedName?.trim() || clean.world.name,
+      tagline: clean.world.tagline,
+      description: clean.world.description,
+      memberships: {
+        create: { userId: ownerId, role: WorldRole.OWNER },
+      },
+    },
+  });
+
+  const worldId = world.id;
   const id = new IdMap();
+  id.set(clean.world.id, worldId);
 
-  const worldId = await prisma.$transaction(
-    async (tx) => {
-      const world = await tx.world.create({
-        data: {
-          name: importedName?.trim() || bundle.world.name,
-          tagline: bundle.world.tagline,
-          description: bundle.world.description,
-          coverImage: remapPath(bundle.world.coverImage, pathMap),
-        },
-      });
-      id.set(bundle.world.id, world.id);
-      const worldId = world.id;
+  // Upload all referenced assets under the new world prefix and build a key
+  // rewrite map for inline references (wiki content, character bios, etc.).
+  const assetKeys = collectUploadPaths(clean);
+  const pathMap = await importAssetsFromZip(zip, assetKeys, worldId);
 
-      for (const r of bundle.regions) {
-        const created = await tx.region.create({
-          data: {
-            worldId,
-            name: r.name,
-            description: r.description,
-            resources: r.resources,
-            settlements: r.settlements,
-            rulerId: null,
-          },
+  try {
+    await prisma.$transaction(
+      async (tx) => {
+        await tx.world.update({
+          where: { id: worldId },
+          data: { coverImage: remapKey(clean.world.coverImage, pathMap) },
         });
-        id.set(r.id, created.id);
-      }
 
-      for (const r of bundle.regions) {
-        if (r.rulerId) {
-          await tx.region.update({
-            where: { id: id.get(r.id) },
-            data: { rulerId: id.get(r.rulerId) },
+        for (const r of clean.regions) {
+          const created = await tx.region.create({
+            data: {
+              worldId,
+              name: r.name,
+              description: r.description,
+              resources: r.resources,
+              settlements: r.settlements,
+              rulerId: null,
+            },
+          });
+          id.set(r.id, created.id);
+        }
+
+        for (const r of clean.regions) {
+          const rulerId = id.lookup(r.rulerId);
+          if (rulerId) {
+            await tx.region.update({
+              where: { id: id.get(r.id) },
+              data: { rulerId },
+            });
+          }
+        }
+
+        for (const f of clean.factions) {
+          const created = await tx.faction.create({
+            data: {
+              worldId,
+              name: f.name,
+              banner: remapKey(f.banner, pathMap),
+              description: f.description,
+              motto: f.motto,
+              alignment: f.alignment,
+            },
+          });
+          id.set(f.id, created.id);
+        }
+
+        for (const rf of clean.regionFactions) {
+          await tx.regionFaction.create({
+            data: {
+              regionId: id.get(rf.regionId),
+              factionId: id.get(rf.factionId),
+            },
           });
         }
-      }
 
-      for (const f of bundle.factions) {
-        const created = await tx.faction.create({
-          data: {
-            worldId,
-            name: f.name,
-            banner: remapPath(f.banner, pathMap),
-            description: f.description,
-            motto: f.motto,
-            alignment: f.alignment,
-          },
-        });
-        id.set(f.id, created.id);
-      }
-
-      for (const rf of bundle.regionFactions) {
-        await tx.regionFaction.create({
-          data: {
-            regionId: id.get(rf.regionId),
-            factionId: id.get(rf.factionId),
-          },
-        });
-      }
-
-      for (const c of bundle.characters) {
-        const created = await tx.character.create({
-          data: {
-            worldId,
-            name: c.name,
-            title: c.title,
-            portrait: remapPath(c.portrait, pathMap),
-            biography: rewritePathsInText(c.biography, pathMap),
-            birthYear: c.birthYear,
-            deathYear: c.deathYear,
-            status: c.status,
-            notes: rewritePathsInText(c.notes, pathMap),
-            factionId: id.optional(c.factionId),
-            currentRegionId: id.optional(c.currentRegionId),
-          },
-        });
-        id.set(c.id, created.id);
-      }
-
-      for (const w of bundle.wikiPages) {
-        const created = await tx.wikiPage.create({
-          data: {
-            worldId,
-            title: w.title,
-            slug: w.slug,
-            category: w.category,
-            tags: w.tags,
-            content:
-              rewritePathsInText(w.content, pathMap) ?? w.content,
-            characters: {
-              connect: w.characterIds.map((cid) => ({ id: id.get(cid) })),
+        for (const c of clean.characters) {
+          const created = await tx.character.create({
+            data: {
+              worldId,
+              name: c.name,
+              title: c.title,
+              portrait: remapKey(c.portrait, pathMap),
+              biography: rewritePathsInText(c.biography, pathMap),
+              birthYear: c.birthYear,
+              deathYear: c.deathYear,
+              status: c.status,
+              notes: rewritePathsInText(c.notes, pathMap),
+              factionId: id.optional(c.factionId),
+              currentRegionId: id.optional(c.currentRegionId),
             },
-            regions: {
-              connect: w.regionIds.map((rid) => ({ id: id.get(rid) })),
+          });
+          id.set(c.id, created.id);
+        }
+
+        for (const w of clean.wikiPages) {
+          const created = await tx.wikiPage.create({
+            data: {
+              worldId,
+              title: w.title,
+              slug: w.slug,
+              category: w.category,
+              tags: w.tags,
+              content:
+                rewritePathsInText(w.content, pathMap) ?? w.content,
+              characters: { connect: id.connect(w.characterIds) },
+              regions: { connect: id.connect(w.regionIds) },
+              factions: { connect: id.connect(w.factionIds) },
             },
-            factions: {
-              connect: w.factionIds.map((fid) => ({ id: id.get(fid) })),
+          });
+          id.set(w.id, created.id);
+        }
+
+        for (const e of clean.timelineEvents) {
+          const created = await tx.timelineEvent.create({
+            data: {
+              worldId,
+              title: e.title,
+              description: e.description,
+              year: e.year,
+              monthDay: e.monthDay,
+              era: e.era,
+              category: e.category,
+              regionId: id.optional(e.regionId),
+              factionId: id.optional(e.factionId),
+              characters: { connect: id.connect(e.characterIds) },
+              wikiLinks: { connect: id.connect(e.wikiPageIds) },
             },
-          },
-        });
-        id.set(w.id, created.id);
-      }
+          });
+          id.set(e.id, created.id);
+        }
 
-      for (const e of bundle.timelineEvents) {
-        const created = await tx.timelineEvent.create({
-          data: {
-            worldId,
-            title: e.title,
-            description: e.description,
-            year: e.year,
-            monthDay: e.monthDay,
-            era: e.era,
-            category: e.category,
-            regionId: id.optional(e.regionId),
-            factionId: id.optional(e.factionId),
-            characters: {
-              connect: e.characterIds.map((cid) => ({ id: id.get(cid) })),
+        for (const w of clean.wikiPages) {
+          const connects = id.connect(w.eventIds);
+          if (connects.length === 0) continue;
+          await tx.wikiPage.update({
+            where: { id: id.get(w.id) },
+            data: { events: { connect: connects } },
+          });
+        }
+
+        for (const link of clean.wikiLinks) {
+          const fromId = id.lookup(link.fromId);
+          const toId = id.lookup(link.toId);
+          if (!fromId || !toId) continue;
+          await tx.wikiLink.create({
+            data: { fromId, toId },
+          });
+        }
+
+        const sortedMaps = sortMapsByParent(clean.maps);
+        for (const m of sortedMaps) {
+          const created = await tx.worldMap.create({
+            data: {
+              worldId,
+              parentMapId: id.optional(m.parentMapId),
+              regionId: id.optional(m.regionId),
+              name: m.name,
+              description: rewritePathsInText(m.description, pathMap),
+              imagePath:
+                remapKey(m.imagePath, pathMap) ?? m.imagePath,
+              width: m.width,
+              height: m.height,
             },
-            wikiLinks: {
-              connect: e.wikiPageIds.map((wid) => ({ id: id.get(wid) })),
+          });
+          id.set(m.id, created.id);
+        }
+
+        for (const p of clean.mapPins) {
+          const mapId = id.lookup(p.mapId);
+          if (!mapId) continue;
+          await tx.mapPin.create({
+            data: {
+              mapId,
+              label: p.label,
+              x: p.x,
+              y: p.y,
+              color: p.color,
+              icon: p.icon,
+              linkType: p.linkType,
+              regionId: id.optional(p.regionId),
+              characterId: id.optional(p.characterId),
+              eventId: id.optional(p.eventId),
+              wikiPageId: id.optional(p.wikiPageId),
+              childMapId: id.optional(p.childMapId),
             },
-          },
-        });
-        id.set(e.id, created.id);
-      }
+          });
+        }
 
-      for (const w of bundle.wikiPages) {
-        if (w.eventIds.length === 0) continue;
-        await tx.wikiPage.update({
-          where: { id: id.get(w.id) },
-          data: {
-            events: {
-              connect: w.eventIds.map((eid) => ({ id: id.get(eid) })),
+        for (const t of clean.familyTrees) {
+          const created = await tx.familyTree.create({
+            data: {
+              worldId,
+              name: t.name,
+              description: t.description,
             },
-          },
-        });
-      }
+          });
+          id.set(t.id, created.id);
+        }
 
-      for (const link of bundle.wikiLinks) {
-        await tx.wikiLink.create({
-          data: {
-            fromId: id.get(link.fromId),
-            toId: id.get(link.toId),
-          },
-        });
-      }
+        for (const m of clean.familyMembers) {
+          const treeId = id.lookup(m.treeId);
+          const characterId = id.lookup(m.characterId);
+          if (!treeId || !characterId) continue;
+          const created = await tx.familyMember.create({
+            data: {
+              treeId,
+              characterId,
+              x: m.x,
+              y: m.y,
+            },
+          });
+          id.set(m.id, created.id);
+        }
 
-      const sortedMaps = sortMapsByParent(bundle.maps);
-      for (const m of sortedMaps) {
-        const created = await tx.worldMap.create({
-          data: {
-            worldId,
-            parentMapId: id.optional(m.parentMapId),
-            regionId: id.optional(m.regionId),
-            name: m.name,
-            description: rewritePathsInText(m.description, pathMap),
-            imagePath:
-              remapPath(m.imagePath, pathMap) ?? m.imagePath,
-            width: m.width,
-            height: m.height,
-          },
-        });
-        id.set(m.id, created.id);
-      }
-
-      for (const p of bundle.mapPins) {
-        await tx.mapPin.create({
-          data: {
-            mapId: id.get(p.mapId),
-            label: p.label,
-            x: p.x,
-            y: p.y,
-            color: p.color,
-            icon: p.icon,
-            linkType: p.linkType,
-            regionId: id.optional(p.regionId),
-            characterId: id.optional(p.characterId),
-            eventId: id.optional(p.eventId),
-            wikiPageId: id.optional(p.wikiPageId),
-            childMapId: id.optional(p.childMapId),
-          },
-        });
-      }
-
-      for (const t of bundle.familyTrees) {
-        const created = await tx.familyTree.create({
-          data: {
-            worldId,
-            name: t.name,
-            description: t.description,
-          },
-        });
-        id.set(t.id, created.id);
-      }
-
-      for (const m of bundle.familyMembers) {
-        const created = await tx.familyMember.create({
-          data: {
-            treeId: id.get(m.treeId),
-            characterId: id.get(m.characterId),
-            x: m.x,
-            y: m.y,
-          },
-        });
-        id.set(m.id, created.id);
-      }
-
-      for (const e of bundle.familyEdges) {
-        await tx.familyEdge.create({
-          data: {
-            treeId: id.get(e.treeId),
-            fromId: id.get(e.fromId),
-            toId: id.get(e.toId),
-            type: e.type,
-          },
-        });
-      }
-
-      return worldId;
-    },
-    { maxWait: 60_000, timeout: 120_000 },
-  );
+        for (const e of clean.familyEdges) {
+          const treeId = id.lookup(e.treeId);
+          const fromId = id.lookup(e.fromId);
+          const toId = id.lookup(e.toId);
+          if (!treeId || !fromId || !toId) continue;
+          await tx.familyEdge.create({
+            data: {
+              treeId,
+              fromId,
+              toId,
+              type: e.type,
+            },
+          });
+        }
+      },
+      { maxWait: 60_000, timeout: 120_000 },
+    );
+  } catch (err) {
+    await prisma.world.delete({ where: { id: worldId } }).catch(() => {});
+    throw err;
+  }
 
   return worldId;
 }

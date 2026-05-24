@@ -4,12 +4,14 @@ import { PageHeader } from "@/components/shell/PageHeader";
 import { WikiForm } from "@/components/wiki/WikiForm";
 import { updateWikiPage } from "@/app/actions/wiki";
 import { tServer } from "@/lib/preferences";
+import { requirePageEdit } from "@/lib/permissions";
 
 export default async function EditWikiPage({
   params,
 }: {
   params: { worldId: string; slug: string };
 }) {
+  await requirePageEdit(params.worldId);
   const page = await prisma.wikiPage.findUnique({
     where: { worldId_slug: { worldId: params.worldId, slug: params.slug } },
   });

@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { tServer } from "@/lib/preferences";
+import { assetUrl } from "@/lib/assetUrl";
 
 export type FactionFormValues = {
   name: string;
@@ -57,7 +58,7 @@ export function FactionForm({
         {v.banner ? (
           <div className="mb-3 flex items-center gap-3">
             <div className="relative h-20 w-32 overflow-hidden rounded-md border border-ink-700">
-              <Image src={v.banner} alt="banner" fill className="object-cover" />
+              <Image src={assetUrl(v.banner) ?? ""} alt="banner" fill className="object-cover" />
             </div>
           </div>
         ) : null}

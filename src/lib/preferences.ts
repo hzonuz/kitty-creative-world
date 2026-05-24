@@ -11,17 +11,23 @@ import {
 export const LOCALE_COOKIE = "wb_locale";
 export const THEME_COOKIE = "wb_theme";
 
-export type Theme = "ink" | "desert" | "cyberpunk" | "steampunk";
-export const THEMES: Theme[] = ["ink", "desert", "cyberpunk", "steampunk"];
+export type Theme = "ink" | "dieselpunk" | "cyberpunk" | "steampunk";
+export const THEMES: Theme[] = ["ink", "dieselpunk", "cyberpunk", "steampunk"];
 export const DEFAULT_THEME: Theme = "ink";
 
 export function isTheme(value: unknown): value is Theme {
   return (
     value === "ink" ||
-    value === "desert" ||
+    value === "dieselpunk" ||
     value === "cyberpunk" ||
     value === "steampunk"
   );
+}
+
+/** Accept legacy cookie value from before the desert → dieselpunk rename. */
+export function normalizeTheme(value: unknown): Theme | null {
+  if (value === "desert") return "dieselpunk";
+  return isTheme(value) ? value : null;
 }
 
 export function getLocale(): Locale {
@@ -31,7 +37,7 @@ export function getLocale(): Locale {
 
 export function getTheme(): Theme {
   const c = cookies().get(THEME_COOKIE)?.value;
-  return isTheme(c) ? c : DEFAULT_THEME;
+  return normalizeTheme(c) ?? DEFAULT_THEME;
 }
 
 // Convenience translator for server components.

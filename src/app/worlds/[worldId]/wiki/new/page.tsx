@@ -2,12 +2,14 @@ import { PageHeader } from "@/components/shell/PageHeader";
 import { WikiForm } from "@/components/wiki/WikiForm";
 import { createWikiPage } from "@/app/actions/wiki";
 import { tServer } from "@/lib/preferences";
+import { requirePageEdit } from "@/lib/permissions";
 
-export default function NewWikiPage({
+export default async function NewWikiPage({
   params,
 }: {
   params: { worldId: string };
 }) {
+  await requirePageEdit(params.worldId);
   const action = createWikiPage.bind(null, params.worldId);
   return (
     <>

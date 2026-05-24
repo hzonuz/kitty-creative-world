@@ -7,6 +7,9 @@ import { deleteMap } from "@/app/actions/maps";
 import { MapViewerLazy } from "@/components/maps/MapViewerLazy";
 import type { MapPinData, PinLink } from "@/components/maps/MapViewer";
 import { tServer } from "@/lib/preferences";
+import { assetUrl } from "@/lib/assetUrl";
+import { CommentSection } from "@/components/comments/CommentSection";
+import { getWorldAccess } from "@/lib/permissions";
 
 export const dynamic = "force-dynamic";
 
@@ -25,6 +28,9 @@ export default async function MapDetailPage({
     },
   });
   if (!map || map.worldId !== params.worldId) notFound();
+
+  const access = await getWorldAccess(params.worldId);
+  const canEdit = !!access?.canEdit;
 
   const [regions, characters, events, wikiPages, allMaps] = await Promise.all([
     prisma.region.findMany({
@@ -102,23 +108,25 @@ export default async function MapDetailPage({
         title={map.name}
         description={map.description ?? undefined}
         actions={
-          <>
-            <Link href={`${base}/maps/${map.id}/edit`} className="btn-ghost">
-              {tServer("common.edit")}
-            </Link>
-            <DeleteButton
-              action={remove}
-              redirectTo={`${base}/maps`}
-              confirmText={tServer("map.deleteConfirm", { name: map.name })}
-            />
-          </>
+          canEdit ? (
+            <>
+              <Link href={`${base}/maps/${map.id}/edit`} className="btn-ghost">
+                {tServer("common.edit")}
+              </Link>
+              <DeleteButton
+                action={remove}
+                redirectTo={`${base}/maps`}
+                confirmText={tServer("map.deleteConfirm", { name: map.name })}
+              />
+            </>
+          ) : null
         }
       />
 
       <MapViewerLazy
         worldId={params.worldId}
         mapId={map.id}
-        imagePath={map.imagePath}
+        imagePath={assetUrl(map.imagePath) ?? map.imagePath}
         width={map.width}
         height={map.height}
         pins={enrichedPins}
@@ -127,6 +135,7 @@ export default async function MapDetailPage({
         events={eventsForViewer}
         wikiPages={wikiPages}
         childMaps={allMaps}
+        canEdit={canEdit}
       />
 
       {map.children.length > 0 ? (
@@ -151,6 +160,13 @@ export default async function MapDetailPage({
           </ul>
         </div>
       ) : null}
+
+      <CommentSection
+        worldId={params.worldId}
+        entityType="MAP"
+        entityId={map.id}
+        revalidate={`/worlds/${params.worldId}/maps/${map.id}`}
+      />
     </>
   );
 }

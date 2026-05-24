@@ -4,8 +4,10 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { saveUpload } from "@/lib/uploads";
+import { requireWorldAccess } from "@/lib/permissions";
 
 export async function createMap(worldId: string, formData: FormData) {
+  await requireWorldAccess(worldId, "editor");
   const name = String(formData.get("name") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim() || null;
   const parentMapId =
@@ -16,9 +18,8 @@ export async function createMap(worldId: string, formData: FormData) {
   if (!name) throw new Error("Name is required");
   if (!file || file.size === 0) throw new Error("Map image is required");
 
-  const imagePath = await saveUpload(file, "maps");
+  const imagePath = await saveUpload(worldId, file, "maps");
 
-  // Read width/height from optional inputs (defaults below if missing).
   const width = numOr(formData.get("width"), 2000);
   const height = numOr(formData.get("height"), 1500);
 
@@ -44,6 +45,7 @@ export async function updateMap(
   id: string,
   formData: FormData,
 ) {
+  await requireWorldAccess(worldId, "editor");
   const name = String(formData.get("name") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim() || null;
   const parentMapId =
@@ -55,7 +57,7 @@ export async function updateMap(
 
   let imagePath: string | undefined;
   if (file && file.size > 0) {
-    imagePath = await saveUpload(file, "maps");
+    imagePath = await saveUpload(worldId, file, "maps");
   }
 
   await prisma.worldMap.update({
@@ -77,6 +79,7 @@ export async function updateMap(
 }
 
 export async function deleteMap(worldId: string, id: string) {
+  await requireWorldAccess(worldId, "editor");
   await prisma.worldMap.delete({ where: { id } });
   revalidatePath(`/worlds/${worldId}/maps`);
 }
@@ -99,6 +102,7 @@ export async function createPin(
     childMapId?: string | null;
   },
 ) {
+  await requireWorldAccess(worldId, "editor");
   await prisma.mapPin.create({
     data: {
       mapId,
@@ -136,11 +140,13 @@ export async function updatePin(
     childMapId: string | null;
   }>,
 ) {
+  await requireWorldAccess(worldId, "editor");
   await prisma.mapPin.update({ where: { id: pinId }, data });
   revalidatePath(`/worlds/${worldId}/maps/${mapId}`);
 }
 
 export async function deletePin(worldId: string, mapId: string, pinId: string) {
+  await requireWorldAccess(worldId, "editor");
   await prisma.mapPin.delete({ where: { id: pinId } });
   revalidatePath(`/worlds/${worldId}/maps/${mapId}`);
 }

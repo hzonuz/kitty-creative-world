@@ -3,10 +3,11 @@ import "./globals.css";
 import { dirOf } from "@/lib/i18n";
 import { getLocale, getTheme } from "@/lib/preferences";
 import { I18nProvider } from "@/components/i18n/I18nProvider";
+import { SessionProvider } from "@/components/auth/SessionProvider";
 
 export const metadata: Metadata = {
   title: "Kitty Creative World",
-  description: "A local-first worldbuilding workspace.",
+  description: "A collaborative worldbuilding workspace.",
 };
 
 export default function RootLayout({
@@ -21,7 +22,9 @@ export default function RootLayout({
   return (
     <html lang={locale} dir={dir} data-theme={theme}>
       <body className="min-h-screen antialiased">
-        <I18nProvider locale={locale}>{children}</I18nProvider>
+        <SessionProvider>
+          <I18nProvider locale={locale}>{children}</I18nProvider>
+        </SessionProvider>
       </body>
     </html>
   );

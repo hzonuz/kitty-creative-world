@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { slugify } from "@/lib/slug";
+import { requireWorldAccess } from "@/lib/permissions";
 
 function readForm(formData: FormData) {
   const title = String(formData.get("title") ?? "").trim();
@@ -27,6 +28,7 @@ async function uniqueSlug(worldId: string, base: string, ignoreId?: string) {
 }
 
 export async function createWikiPage(worldId: string, formData: FormData) {
+  await requireWorldAccess(worldId, "editor");
   const data = readForm(formData);
   if (!data.title) throw new Error("Title is required");
   const slug = await uniqueSlug(worldId, slugify(data.title));
@@ -42,6 +44,7 @@ export async function updateWikiPage(
   id: string,
   formData: FormData,
 ) {
+  await requireWorldAccess(worldId, "editor");
   const data = readForm(formData);
   if (!data.title) throw new Error("Title is required");
   const existing = await prisma.wikiPage.findUnique({ where: { id } });
@@ -63,6 +66,7 @@ export async function updateWikiPage(
 }
 
 export async function deleteWikiPage(worldId: string, id: string) {
+  await requireWorldAccess(worldId, "editor");
   await prisma.wikiPage.delete({ where: { id } });
   revalidatePath(`/worlds/${worldId}/wiki`);
 }

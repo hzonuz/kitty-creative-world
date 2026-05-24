@@ -7,6 +7,8 @@ import { deleteWikiPage } from "@/app/actions/wiki";
 import { parseTags } from "@/lib/wiki";
 import { tServer } from "@/lib/preferences";
 import type { TKey } from "@/lib/i18n";
+import { CommentSection } from "@/components/comments/CommentSection";
+import { getWorldAccess } from "@/lib/permissions";
 
 export const dynamic = "force-dynamic";
 
@@ -28,6 +30,7 @@ export default async function WikiPageView({
   });
   if (!page) notFound();
 
+  const access = await getWorldAccess(params.worldId);
   const remove = deleteWikiPage.bind(null, params.worldId, page.id);
   const base = `/worlds/${params.worldId}`;
   const tags = parseTags(page.tags);
@@ -38,16 +41,18 @@ export default async function WikiPageView({
         eyebrow={tServer(`wiki.cat.${page.category}` as TKey)}
         title={page.title}
         actions={
-          <>
-            <Link href={`${base}/wiki/${page.slug}/edit`} className="btn-ghost">
-              {tServer("common.edit")}
-            </Link>
-            <DeleteButton
-              action={remove}
-              redirectTo={`${base}/wiki`}
-              confirmText={tServer("wiki.deleteConfirm", { name: page.title })}
-            />
-          </>
+          access?.canEdit ? (
+            <>
+              <Link href={`${base}/wiki/${page.slug}/edit`} className="btn-ghost">
+                {tServer("common.edit")}
+              </Link>
+              <DeleteButton
+                action={remove}
+                redirectTo={`${base}/wiki`}
+                confirmText={tServer("wiki.deleteConfirm", { name: page.title })}
+              />
+            </>
+          ) : null
         }
       />
 
@@ -112,6 +117,13 @@ export default async function WikiPageView({
           </SidePanel>
         </aside>
       </div>
+
+      <CommentSection
+        worldId={params.worldId}
+        entityType="WIKI"
+        entityId={page.id}
+        revalidate={`/worlds/${params.worldId}/wiki/${page.slug}`}
+      />
     </>
   );
 }

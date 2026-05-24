@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { tServer } from "@/lib/preferences";
+import { assetUrl } from "@/lib/assetUrl";
 
 type Option = { id: string; name: string };
 
@@ -125,7 +126,7 @@ export function CharacterForm({
         {v.portrait ? (
           <div className="mb-3 flex items-center gap-3">
             <div className="relative h-20 w-20 overflow-hidden rounded-md border border-ink-700">
-              <Image src={v.portrait} alt="portrait" fill className="object-cover" />
+              <Image src={assetUrl(v.portrait) ?? ""} alt="portrait" fill className="object-cover" />
             </div>
             <span className="text-xs text-ink-400">
               {tServer("character.portrait.replaceHint")}

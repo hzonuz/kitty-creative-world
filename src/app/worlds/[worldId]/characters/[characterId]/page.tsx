@@ -7,6 +7,9 @@ import { DeleteButton } from "@/components/shell/DeleteButton";
 import { deleteCharacter } from "@/app/actions/characters";
 import { formatYear } from "@/lib/slug";
 import { tServer } from "@/lib/preferences";
+import { assetUrl } from "@/lib/assetUrl";
+import { CommentSection } from "@/components/comments/CommentSection";
+import { getWorldAccess } from "@/lib/permissions";
 
 export const dynamic = "force-dynamic";
 
@@ -30,6 +33,7 @@ export default async function CharacterDetailPage({
   });
   if (!character || character.worldId !== params.worldId) notFound();
 
+  const access = await getWorldAccess(params.worldId);
   const remove = deleteCharacter.bind(null, params.worldId, character.id);
   const base = `/worlds/${params.worldId}`;
 
@@ -40,21 +44,23 @@ export default async function CharacterDetailPage({
         title={character.name}
         description={character.title ?? undefined}
         actions={
-          <>
-            <Link
-              href={`${base}/characters/${character.id}/edit`}
-              className="btn-ghost"
-            >
-              {tServer("common.edit")}
-            </Link>
-            <DeleteButton
-              action={remove}
-              redirectTo={`${base}/characters`}
-              confirmText={tServer("character.deleteConfirm", {
-                name: character.name,
-              })}
-            />
-          </>
+          access?.canEdit ? (
+            <>
+              <Link
+                href={`${base}/characters/${character.id}/edit`}
+                className="btn-ghost"
+              >
+                {tServer("common.edit")}
+              </Link>
+              <DeleteButton
+                action={remove}
+                redirectTo={`${base}/characters`}
+                confirmText={tServer("character.deleteConfirm", {
+                  name: character.name,
+                })}
+              />
+            </>
+          ) : null
         }
       />
 
@@ -63,7 +69,7 @@ export default async function CharacterDetailPage({
           <div className="relative aspect-[4/5] w-full bg-ink-800">
             {character.portrait ? (
               <Image
-                src={character.portrait}
+                src={assetUrl(character.portrait) ?? ""}
                 alt={character.name}
                 fill
                 className="object-cover"
@@ -183,6 +189,13 @@ export default async function CharacterDetailPage({
           </Card>
         </div>
       </div>
+
+      <CommentSection
+        worldId={params.worldId}
+        entityType="CHARACTER"
+        entityId={character.id}
+        revalidate={`/worlds/${params.worldId}/characters/${character.id}`}
+      />
     </>
   );
 }

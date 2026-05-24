@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { requireWorldAccess } from "@/lib/permissions";
 
 function readForm(formData: FormData) {
   const name = String(formData.get("name") ?? "").trim();
@@ -15,6 +16,7 @@ function readForm(formData: FormData) {
 }
 
 export async function createRegion(worldId: string, formData: FormData) {
+  await requireWorldAccess(worldId, "editor");
   const data = readForm(formData);
   if (!data.name) throw new Error("Name is required");
 
@@ -41,6 +43,7 @@ export async function updateRegion(
   id: string,
   formData: FormData,
 ) {
+  await requireWorldAccess(worldId, "editor");
   const data = readForm(formData);
   if (!data.name) throw new Error("Name is required");
 
@@ -67,6 +70,7 @@ export async function updateRegion(
 }
 
 export async function deleteRegion(worldId: string, id: string) {
+  await requireWorldAccess(worldId, "editor");
   await prisma.region.delete({ where: { id } });
   revalidatePath(`/worlds/${worldId}/regions`);
 }

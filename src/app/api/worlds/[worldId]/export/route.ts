@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { fetchWorldBundle, buildWorldZip, slugifyFilename } from "@/lib/world-bundle";
+import { getWorldAccess } from "@/lib/permissions";
 
 export const dynamic = "force-dynamic";
 
@@ -8,6 +9,14 @@ export async function GET(
   _request: Request,
   { params }: { params: { worldId: string } },
 ) {
+  const access = await getWorldAccess(params.worldId);
+  if (!access) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+  }
+  if (!access.canEdit) {
+    return NextResponse.json({ error: "Editor role required to export" }, { status: 403 });
+  }
+
   const world = await prisma.world.findUnique({
     where: { id: params.worldId },
     select: { id: true, name: true },

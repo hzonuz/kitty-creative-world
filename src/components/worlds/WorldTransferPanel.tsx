@@ -3,9 +3,11 @@ import { WorldImportForm } from "./WorldImportForm";
 
 export function WorldTransferPanel({
   worldId,
+  showImport = true,
   labels,
 }: {
   worldId?: string;
+  showImport?: boolean;
   labels: {
     sectionTitle: string;
     exportTitle: string;
@@ -30,16 +32,18 @@ export function WorldTransferPanel({
         exportDescription={labels.exportDescription}
         exportButton={labels.exportButton}
       />
-      <WorldImportForm
-        labels={{
-          title: labels.importTitle,
-          description: labels.importDescription,
-          fileLabel: labels.importFileLabel,
-          submit: labels.importSubmit,
-          submitting: labels.importSubmitting,
-          hint: labels.importHint,
-        }}
-      />
+      {showImport ? (
+        <WorldImportForm
+          labels={{
+            title: labels.importTitle,
+            description: labels.importDescription,
+            fileLabel: labels.importFileLabel,
+            submit: labels.importSubmit,
+            submitting: labels.importSubmitting,
+            hint: labels.importHint,
+          }}
+        />
+      ) : null}
     </section>
   );
 }

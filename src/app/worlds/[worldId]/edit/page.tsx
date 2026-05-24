@@ -1,18 +1,28 @@
 import Link from "next/link";
 import Image from "next/image";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/shell/PageHeader";
 import { DeleteButton } from "@/components/shell/DeleteButton";
 import { WorldTransferPanel } from "@/components/worlds/WorldTransferPanel";
 import { deleteWorld, updateWorld } from "@/app/actions/worlds";
 import { tServer } from "@/lib/preferences";
+import { assetUrl } from "@/lib/assetUrl";
+import { getWorldAccess } from "@/lib/permissions";
 
 export default async function EditWorldPage({
   params,
 }: {
   params: { worldId: string };
 }) {
+  const access = await getWorldAccess(params.worldId);
+  if (!access) {
+    redirect(`/auth/signin?callbackUrl=/worlds/${params.worldId}/edit`);
+  }
+  if (!access.canEdit) {
+    redirect(`/worlds/${params.worldId}`);
+  }
+
   const world = await prisma.world.findUnique({ where: { id: params.worldId } });
   if (!world) notFound();
 
@@ -26,12 +36,14 @@ export default async function EditWorldPage({
         title={world.name}
         description={tServer("world.edit.description")}
         actions={
-          <DeleteButton
-            action={remove}
-            label={tServer("world.delete")}
-            confirmText={tServer("world.deleteConfirm", { name: world.name })}
-            redirectTo="/"
-          />
+          access.isOwner ? (
+            <DeleteButton
+              action={remove}
+              label={tServer("world.delete")}
+              confirmText={tServer("world.deleteConfirm", { name: world.name })}
+              redirectTo="/"
+            />
+          ) : null
         }
       />
 
@@ -71,7 +83,7 @@ export default async function EditWorldPage({
             <div className="mb-3 overflow-hidden rounded-md border border-ink-700">
               <div className="relative aspect-[16/6]">
                 <Image
-                  src={world.coverImage}
+                  src={assetUrl(world.coverImage) ?? ""}
                   alt="cover"
                   fill
                   className="object-cover"
@@ -102,6 +114,7 @@ export default async function EditWorldPage({
       <div className="mt-10 max-w-2xl">
         <WorldTransferPanel
           worldId={world.id}
+          showImport={false}
           labels={{
             sectionTitle: tServer("world.transfer.section"),
             exportTitle: tServer("world.transfer.export.title"),

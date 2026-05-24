@@ -7,7 +7,7 @@ import {
 import {
   assetZipPath,
   collectUploadPaths,
-  readAssetFromDisk,
+  readAssetFromStorage,
 } from "./assets";
 
 const MANIFEST_FILE = "manifest.json";
@@ -37,11 +37,11 @@ export async function buildWorldZip(bundle: WorldBundle): Promise<Buffer> {
   zip.file(MANIFEST_FILE, JSON.stringify(manifest, null, 2));
   zip.file(DATA_FILE, JSON.stringify(bundle, null, 2));
 
-  const assetPaths = collectUploadPaths(bundle);
-  for (const publicPath of assetPaths) {
-    const zipPath = assetZipPath(publicPath);
+  const assetKeys = collectUploadPaths(bundle);
+  for (const key of assetKeys) {
+    const zipPath = assetZipPath(key);
     if (!zipPath) continue;
-    const data = await readAssetFromDisk(publicPath);
+    const data = await readAssetFromStorage(key);
     if (data) zip.file(zipPath, data);
   }
 

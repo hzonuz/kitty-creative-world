@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { saveUpload } from "@/lib/uploads";
+import { requireWorldAccess } from "@/lib/permissions";
 
 function readForm(formData: FormData) {
   const name = String(formData.get("name") ?? "").trim();
@@ -14,14 +15,15 @@ function readForm(formData: FormData) {
 }
 
 export async function createFaction(worldId: string, formData: FormData) {
+  await requireWorldAccess(worldId, "editor");
   const data = readForm(formData);
   if (!data.name) throw new Error("Name is required");
   const banner = formData.get("banner") as File | null;
-  let bannerPath: string | null = null;
-  if (banner && banner.size > 0) bannerPath = await saveUpload(banner, "banners");
+  let bannerKey: string | null = null;
+  if (banner && banner.size > 0) bannerKey = await saveUpload(worldId, banner, "banners");
 
   const f = await prisma.faction.create({
-    data: { worldId, ...data, banner: bannerPath },
+    data: { worldId, ...data, banner: bannerKey },
   });
 
   revalidatePath(`/worlds/${worldId}/factions`);
@@ -33,15 +35,16 @@ export async function updateFaction(
   id: string,
   formData: FormData,
 ) {
+  await requireWorldAccess(worldId, "editor");
   const data = readForm(formData);
   if (!data.name) throw new Error("Name is required");
   const banner = formData.get("banner") as File | null;
-  let bannerPath: string | undefined;
-  if (banner && banner.size > 0) bannerPath = await saveUpload(banner, "banners");
+  let bannerKey: string | undefined;
+  if (banner && banner.size > 0) bannerKey = await saveUpload(worldId, banner, "banners");
 
   await prisma.faction.update({
     where: { id },
-    data: { ...data, ...(bannerPath ? { banner: bannerPath } : {}) },
+    data: { ...data, ...(bannerKey ? { banner: bannerKey } : {}) },
   });
 
   revalidatePath(`/worlds/${worldId}/factions`);
@@ -50,6 +53,7 @@ export async function updateFaction(
 }
 
 export async function deleteFaction(worldId: string, id: string) {
+  await requireWorldAccess(worldId, "editor");
   await prisma.faction.delete({ where: { id } });
   revalidatePath(`/worlds/${worldId}/factions`);
 }

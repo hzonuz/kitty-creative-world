@@ -3,8 +3,10 @@ import { ReactNode } from "react";
 import { getTheme } from "@/lib/preferences";
 import { tServer } from "@/lib/preferences";
 import { SettingsMenu } from "./SettingsMenu";
+import { getCurrentUser } from "@/lib/auth";
+import { UserMenu } from "@/components/auth/UserMenu";
 
-export function AppShell({
+export async function AppShell({
   sidebar,
   children,
   topRight,
@@ -15,6 +17,7 @@ export function AppShell({
 }) {
   const theme = getTheme();
   const appName = tServer("app.name");
+  const user = await getCurrentUser();
 
   return (
     <div className="flex min-h-screen">
@@ -28,7 +31,7 @@ export function AppShell({
         </Link>
         {sidebar}
       </aside>
-      <main className="flex min-h-screen flex-1 flex-col">
+      <main className="theme-bg flex min-h-screen flex-1 flex-col">
         <header className="sticky top-0 z-30 flex items-center justify-between border-b border-ink-700/70 bg-ink-900/70 px-6 py-3 backdrop-blur">
           <Link href="/" className="heading-display text-base md:hidden">
             ✦ {appName}
@@ -36,6 +39,17 @@ export function AppShell({
           <div className="ms-auto flex items-center gap-3">
             {topRight}
             <SettingsMenu theme={theme} />
+            {user ? (
+              <UserMenu
+                displayName={user.displayName ?? user.username}
+                username={user.username}
+                email={user.email}
+                labels={{
+                  signOut: tServer("auth.signout"),
+                  signedInAs: tServer("auth.signedInAs"),
+                }}
+              />
+            ) : null}
           </div>
         </header>
         <div className="flex-1 px-6 py-6 lg:px-10 lg:py-8">{children}</div>

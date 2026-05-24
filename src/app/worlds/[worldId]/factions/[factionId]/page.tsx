@@ -7,6 +7,9 @@ import { DeleteButton } from "@/components/shell/DeleteButton";
 import { deleteFaction } from "@/app/actions/factions";
 import { formatYear } from "@/lib/slug";
 import { tServer } from "@/lib/preferences";
+import { assetUrl } from "@/lib/assetUrl";
+import { CommentSection } from "@/components/comments/CommentSection";
+import { getWorldAccess } from "@/lib/permissions";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +29,7 @@ export default async function FactionDetailPage({
   });
   if (!faction || faction.worldId !== params.worldId) notFound();
 
+  const access = await getWorldAccess(params.worldId);
   const remove = deleteFaction.bind(null, params.worldId, faction.id);
   const base = `/worlds/${params.worldId}`;
 
@@ -36,16 +40,18 @@ export default async function FactionDetailPage({
         title={faction.name}
         description={faction.motto ? `"${faction.motto}"` : undefined}
         actions={
-          <>
-            <Link href={`${base}/factions/${faction.id}/edit`} className="btn-ghost">
-              {tServer("common.edit")}
-            </Link>
-            <DeleteButton
-              action={remove}
-              redirectTo={`${base}/factions`}
-              confirmText={tServer("faction.deleteConfirm", { name: faction.name })}
-            />
-          </>
+          access?.canEdit ? (
+            <>
+              <Link href={`${base}/factions/${faction.id}/edit`} className="btn-ghost">
+                {tServer("common.edit")}
+              </Link>
+              <DeleteButton
+                action={remove}
+                redirectTo={`${base}/factions`}
+                confirmText={tServer("faction.deleteConfirm", { name: faction.name })}
+              />
+            </>
+          ) : null
         }
       />
 
@@ -53,7 +59,7 @@ export default async function FactionDetailPage({
         <div className="card overflow-hidden lg:col-span-1">
           <div className="relative aspect-[16/9] w-full bg-ink-800">
             {faction.banner ? (
-              <Image src={faction.banner} alt={faction.name} fill className="object-cover" />
+              <Image src={assetUrl(faction.banner) ?? ""} alt={faction.name} fill className="object-cover" />
             ) : (
               <div className="flex h-full w-full items-center justify-center text-5xl text-ink-400">
                 ⚔
@@ -109,6 +115,13 @@ export default async function FactionDetailPage({
           />
         </div>
       </div>
+
+      <CommentSection
+        worldId={params.worldId}
+        entityType="FACTION"
+        entityId={faction.id}
+        revalidate={`/worlds/${params.worldId}/factions/${faction.id}`}
+      />
     </>
   );
 }

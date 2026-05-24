@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/shell/PageHeader";
 import { EmptyState } from "@/components/shell/EmptyState";
 import { tServer } from "@/lib/preferences";
+import { assetUrl } from "@/lib/assetUrl";
 
 export const dynamic = "force-dynamic";
 
@@ -51,7 +52,7 @@ export default async function FactionsPage({
             >
               <div className="relative aspect-[16/8] w-full bg-ink-800">
                 {f.banner ? (
-                  <Image src={f.banner} alt={f.name} fill className="object-cover" />
+                  <Image src={assetUrl(f.banner) ?? ""} alt={f.name} fill className="object-cover" />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center text-3xl text-ink-400">
                     ⚔

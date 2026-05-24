@@ -1,13 +1,103 @@
-// Local-first worldbuilding schema.
-// SQLite-friendly: uses string ids (cuid) and text for tags/JSON-like fields.
+// Multi-tenant worldbuilding schema (PostgreSQL).
+// Production-ready: ownership, role-based collaboration, comments, S3/MinIO asset keys.
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Auth
+// ---------------------------------------------------------------------------
+model User {
+  id            String   @id @default(cuid())
+  username      String   @unique
+  email         String   @unique
+  passwordHash  String
+  displayName   String?
+  avatarKey     String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  ownedWorlds   World[]            @relation("WorldOwner")
+  memberships   WorldMembership[]
+  comments      Comment[]
+  sessions      Session[]
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  userId       String
+  sessionToken String   @unique
+  expires      DateTime
+  createdAt    DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// Role hierarchy: VIEWER < COMMENTOR < EDITOR < OWNER.
+// Owner is stored both as World.ownerId and as a WorldMembership row with OWNER role.
+enum WorldRole {
+  VIEWER
+  COMMENTOR
+  EDITOR
+  OWNER
+}
+
+model WorldMembership {
+  id        String    @id @default(cuid())
+  worldId   String
+  userId    String
+  role      WorldRole
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  world World @relation(fields: [worldId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([worldId, userId])
+  @@index([worldId])
+  @@index([userId])
+}
+
+// ---------------------------------------------------------------------------
+// Comments — generic threaded comments attached to any in-world entity.
+// entityType + entityId is a soft polymorphic reference into the world.
+// ---------------------------------------------------------------------------
+enum CommentEntity {
+  WORLD
+  REGION
+  CHARACTER
+  FACTION
+  EVENT
+  WIKI
+  MAP
+  MAP_PIN
+  FAMILY_TREE
+  FAMILY_MEMBER
+}
+
+model Comment {
+  id         String        @id @default(cuid())
+  worldId    String
+  authorId   String
+  entityType CommentEntity
+  entityId   String
+  body       String
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  world  World @relation(fields: [worldId], references: [id], onDelete: Cascade)
+  author User  @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([worldId])
+  @@index([entityType, entityId])
 }
 
 // ---------------------------------------------------------------------------
@@ -15,12 +105,18 @@ datasource db {
 // ---------------------------------------------------------------------------
 model World {
   id          String   @id @default(cuid())
+  ownerId     String
   name        String
   tagline     String?
   description String?
-  coverImage  String?
+  coverImage  String?  // storage object key, e.g. "covers/123.png"
+  isPublic    Boolean  @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  owner       User              @relation("WorldOwner", fields: [ownerId], references: [id])
+  memberships WorldMembership[]
+  comments    Comment[]
 
   regions      Region[]
   characters   Character[]
@@ -29,6 +125,8 @@ model World {
   wikiPages    WikiPage[]
   maps         WorldMap[]
   familyTrees  FamilyTree[]
+
+  @@index([ownerId])
 }
 
 // ---------------------------------------------------------------------------
@@ -39,9 +137,9 @@ model Region {
   worldId     String
   name        String
   description String?
-  rulerId     String?  // a character id
-  resources   String?  // free text or JSON
-  settlements String?  // free text list
+  rulerId     String?
+  resources   String?
+  settlements String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -80,7 +178,6 @@ model Faction {
   @@index([worldId])
 }
 
-// Many-to-many: a region can have many factions present
 model RegionFaction {
   regionId  String
   factionId String
@@ -103,7 +200,7 @@ model Character {
   biography    String?
   birthYear    Int?
   deathYear    Int?
-  status       String?  // alive, dead, missing, etc.
+  status       String?
   notes        String?
   factionId    String?
   currentRegionId String?
@@ -118,10 +215,9 @@ model Character {
   events        TimelineEvent[]
   wikiLinks     WikiPage[] @relation("CharacterWikiLinks")
 
-  // family relationships
   parentLinks   FamilyMember[] @relation("FamilyMemberPerson")
 
-  // self-referencing parent/spouse handled via FamilyEdge below
+  @@index([worldId])
 }
 
 // ---------------------------------------------------------------------------
@@ -142,12 +238,10 @@ model FamilyTree {
   @@index([worldId])
 }
 
-// A FamilyMember is a placement of a Character inside a particular tree.
 model FamilyMember {
   id          String  @id @default(cuid())
   treeId      String
   characterId String
-  // optional layout coords for React Flow
   x           Float?
   y           Float?
 
@@ -160,13 +254,12 @@ model FamilyMember {
   @@unique([treeId, characterId])
 }
 
-// Edge between two members. type: parent | spouse
 model FamilyEdge {
   id       String @id @default(cuid())
   treeId   String
   fromId   String
   toId     String
-  type     String // "parent" (from -> child to) or "spouse" (between two)
+  type     String
 
   tree   FamilyTree   @relation(fields: [treeId], references: [id], onDelete: Cascade)
   from   FamilyMember @relation("FromMember", fields: [fromId], references: [id], onDelete: Cascade)
@@ -184,9 +277,9 @@ model TimelineEvent {
   title       String
   description String?
   year        Int
-  monthDay    String?  // optional "MM-DD" for finer ordering
-  era         String?  // optional era label, e.g. "Age of Embers"
-  category    String?  // battle, founding, discovery, etc.
+  monthDay    String?
+  era         String?
+  category    String?
   regionId    String?
   factionId   String?
   createdAt   DateTime @default(now())
@@ -210,21 +303,19 @@ model WikiPage {
   worldId     String
   title       String
   slug        String
-  category    String   // characters, places, factions, religions, items, events, magic
-  tags        String?  // comma-separated
-  content     String   // markdown / tiptap HTML
+  category    String
+  tags        String?
+  content     String
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   world      World            @relation(fields: [worldId], references: [id], onDelete: Cascade)
-  // links to other entities
   characters Character[]      @relation("CharacterWikiLinks")
   regions    Region[]         @relation("RegionWikiLinks")
   factions   Faction[]        @relation("FactionWikiLinks")
   events     TimelineEvent[]  @relation("EventWikiLinks")
   pins       MapPin[]
 
-  // wiki-to-wiki internal links
   outgoingLinks WikiLink[] @relation("LinkFrom")
   incomingLinks WikiLink[] @relation("LinkTo")
 
@@ -249,11 +340,11 @@ model WikiLink {
 model WorldMap {
   id          String   @id @default(cuid())
   worldId     String
-  parentMapId String?  // nested maps: world -> continent -> city
+  parentMapId String?
   regionId    String?
   name        String
   description String?
-  imagePath   String   // path under /uploads/...
+  imagePath   String   // storage object key, e.g. "maps/123.png"
   width       Int      @default(2000)
   height      Int      @default(1500)
   createdAt   DateTime @default(now())
@@ -268,17 +359,15 @@ model WorldMap {
   @@index([worldId])
 }
 
-// A pin on a map. Coordinates are pixel-space against the map image.
-// linkType discriminates which optional id is set.
 model MapPin {
   id        String  @id @default(cuid())
   mapId     String
   label     String
   x         Float
   y         Float
-  color     String? // hex
-  icon      String? // optional emoji / icon key
-  linkType  String  // "region" | "character" | "event" | "wiki" | "map" | "none"
+  color     String?
+  icon      String?
+  linkType  String
 
   regionId    String?
   characterId String?

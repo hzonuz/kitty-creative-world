@@ -66,17 +66,17 @@
   --body-bg-image: url("/assets/backgrounds/dark_fantasy.png");
   --body-scrim: linear-gradient(
     180deg,
-    rgb(7 9 13 / 0.62) 0%,
-    rgb(14 18 24 / 0.66) 45%,
-    rgb(7 9 13 / 0.78) 100%
+    rgb(7 9 13 / 0.28) 0%,
+    rgb(14 18 24 / 0.34) 45%,
+    rgb(7 9 13 / 0.5) 100%
   );
   --body-overlay:
     radial-gradient(circle at 14% 10%, rgb(110 168 220 / 0.08), transparent 50%),
     radial-gradient(circle at 86% 88%, rgb(211 152 74 / 0.08), transparent 55%);
 }
 
-:root[data-theme="desert"] {
-  /* Desert / oil rigs — sampled from desert_oilrigs.png:
+:root[data-theme="dieselpunk"] {
+  /* Diesel Punk — sampled from dieselpunk.png:
        sand shadow #20120a · dunes #3d2113/#562e19/#6f371a/#8b421c
        backlit rust #a85020/#c76628 · sunset glow #e47f2e/#f9a43b
        sun disk #fed666 (warmest highlight) */
@@ -114,12 +114,12 @@
   --blood-600: 132 48 18;
 
   --body-base: linear-gradient(180deg, #20120a 0%, #3d2113 45%, #20120a 100%);
-  --body-bg-image: url("/assets/backgrounds/desert_oilrigs.png");
+  --body-bg-image: url("/assets/backgrounds/dieselpunk.png");
   --body-scrim: linear-gradient(
     180deg,
-    rgb(32 18 10 / 0.55) 0%,
-    rgb(48 28 16 / 0.62) 45%,
-    rgb(20 10 6 / 0.78) 100%
+    rgb(32 18 10 / 0.22) 0%,
+    rgb(48 28 16 / 0.3) 45%,
+    rgb(20 10 6 / 0.5) 100%
   );
   --body-overlay:
     radial-gradient(circle at 26% 30%, rgb(249 164 59 / 0.14), transparent 45%),
@@ -166,9 +166,9 @@
   --body-bg-image: url("/assets/backgrounds/cyberpunk.png");
   --body-scrim: linear-gradient(
     180deg,
-    rgb(3 4 12 / 0.62) 0%,
-    rgb(10 11 26 / 0.7) 50%,
-    rgb(3 4 12 / 0.82) 100%
+    rgb(3 4 12 / 0.28) 0%,
+    rgb(10 11 26 / 0.36) 50%,
+    rgb(3 4 12 / 0.55) 100%
   );
   --body-overlay:
     radial-gradient(circle at 18% 22%, rgb(56 226 236 / 0.1), transparent 45%),
@@ -180,7 +180,7 @@
        smoky night #0f0a05/#1e140b · sepia city #2e2012/#3e2d1c
        lit brick #503c28/#664d34 · brass facade #826242/#9f7a51
        lamplight gold #c19664/#e3bb81
-     (Notably more balanced sepia than desert's pure orange.) */
+     (Notably more balanced sepia than dieselpunk's pure orange.) */
   --ink-950: 15 10 5;    /* ≈ #0f0a05 */
   --ink-900: 30 20 11;   /* ≈ #1e140b */
   --ink-850: 46 32 18;   /* ≈ #2e2012 */
@@ -217,9 +217,9 @@
   --body-bg-image: url("/assets/backgrounds/steampunk.png");
   --body-scrim: linear-gradient(
     180deg,
-    rgb(15 10 5 / 0.6) 0%,
-    rgb(30 20 11 / 0.68) 50%,
-    rgb(15 10 5 / 0.82) 100%
+    rgb(15 10 5 / 0.28) 0%,
+    rgb(30 20 11 / 0.34) 50%,
+    rgb(15 10 5 / 0.55) 100%
   );
   --body-overlay:
     radial-gradient(circle at 50% 30%, rgb(232 188 130 / 0.1), transparent 50%),
@@ -245,11 +245,6 @@ html[lang="fa"] {
   color-scheme: dark;
 }
 
-html {
-  /* Fallback when body layers do not paint (e.g. overscroll) */
-  background-color: rgb(var(--ink-950));
-}
-
 html,
 body {
   min-height: 100%;
@@ -257,18 +252,65 @@ body {
   font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
 }
 
-body {
-  /* Do not use height: 100% on html/body — it caps the box to the viewport and
-     the background stops while content still scrolls. min-height lets the page grow. */
+html {
+  /* Solid ink color fills the whole viewport (including under the sidebar
+     after login) so we never see white. The photographic theme art is
+     painted by `.theme-bg` only on elements that want it. */
   background-color: rgb(var(--ink-950));
-  /* First layer = top: color washes, then readability scrim, then art, then solid fallback */
-  background-image: var(--body-overlay), var(--body-scrim), var(--body-bg-image), var(--body-base);
+}
+
+body {
+  background-color: transparent;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+/* Helper class: paints the per-theme photo + scrim + overlay.
+   Auth pages use the full viewport. Logged-in pages use <main>, where the
+   fixed layer starts after the desktop sidebar so the image is sized to the
+   main column and never sits under sidebar chrome. */
+.theme-bg {
+  position: relative;
+  isolation: isolate;
+}
+
+.theme-bg::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: var(--theme-bg-left, 0);
+  right: var(--theme-bg-right, 0);
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.72;
+  background-color: rgb(var(--ink-950));
+  background-image:
+    var(--body-overlay),
+    var(--body-scrim),
+    var(--body-bg-image),
+    var(--body-base);
   background-size: auto, auto, cover, auto;
   background-position: center, center, center, center;
   background-repeat: no-repeat, no-repeat, no-repeat, no-repeat;
   background-attachment: fixed, fixed, fixed, fixed;
-  min-height: 100vh;
-  min-height: 100dvh;
+}
+
+main.theme-bg {
+  --theme-bg-left: 16rem; /* Matches the desktop sidebar's w-64 width. */
+}
+
+html[dir="rtl"] main.theme-bg {
+  --theme-bg-left: 0;
+  --theme-bg-right: 16rem;
+}
+
+@media (max-width: 767px) {
+  main.theme-bg,
+  html[dir="rtl"] main.theme-bg {
+    --theme-bg-left: 0;
+    --theme-bg-right: 0;
+  }
 }
 
 /* Scrollbar */

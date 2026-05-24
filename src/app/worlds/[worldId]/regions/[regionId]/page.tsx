@@ -6,6 +6,8 @@ import { DeleteButton } from "@/components/shell/DeleteButton";
 import { deleteRegion } from "@/app/actions/regions";
 import { formatYear } from "@/lib/slug";
 import { tServer } from "@/lib/preferences";
+import { CommentSection } from "@/components/comments/CommentSection";
+import { getWorldAccess } from "@/lib/permissions";
 
 export const dynamic = "force-dynamic";
 
@@ -27,6 +29,7 @@ export default async function RegionDetailPage({
   });
   if (!region || region.worldId !== params.worldId) notFound();
 
+  const access = await getWorldAccess(params.worldId);
   const remove = deleteRegion.bind(null, params.worldId, region.id);
   const base = `/worlds/${params.worldId}`;
 
@@ -37,16 +40,18 @@ export default async function RegionDetailPage({
         title={region.name}
         description={region.description ?? undefined}
         actions={
-          <>
-            <Link href={`${base}/regions/${region.id}/edit`} className="btn-ghost">
-              {tServer("common.edit")}
-            </Link>
-            <DeleteButton
-              action={remove}
-              redirectTo={`${base}/regions`}
-              confirmText={tServer("region.deleteConfirm", { name: region.name })}
-            />
-          </>
+          access?.canEdit ? (
+            <>
+              <Link href={`${base}/regions/${region.id}/edit`} className="btn-ghost">
+                {tServer("common.edit")}
+              </Link>
+              <DeleteButton
+                action={remove}
+                redirectTo={`${base}/regions`}
+                confirmText={tServer("region.deleteConfirm", { name: region.name })}
+              />
+            </>
+          ) : null
         }
       />
 
@@ -132,6 +137,13 @@ export default async function RegionDetailPage({
           />
         </div>
       </div>
+
+      <CommentSection
+        worldId={params.worldId}
+        entityType="REGION"
+        entityId={region.id}
+        revalidate={`/worlds/${params.worldId}/regions/${region.id}`}
+      />
     </>
   );
 }

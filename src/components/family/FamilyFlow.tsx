@@ -160,11 +160,17 @@ function Inner({
       setNodes((nds) => applyNodeChanges(changes, nds));
       for (const change of changes) {
         if (change.type === "position" && !change.dragging && change.position) {
-          updateMemberPosition(treeId, change.id, change.position.x, change.position.y).catch(() => {});
+          updateMemberPosition(
+            worldId,
+            treeId,
+            change.id,
+            change.position.x,
+            change.position.y,
+          ).catch(() => {});
         }
       }
     },
-    [treeId],
+    [worldId, treeId],
   );
 
   return (

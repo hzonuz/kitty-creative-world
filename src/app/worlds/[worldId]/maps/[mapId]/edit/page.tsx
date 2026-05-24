@@ -4,12 +4,14 @@ import { PageHeader } from "@/components/shell/PageHeader";
 import { MapForm } from "@/components/maps/MapForm";
 import { updateMap } from "@/app/actions/maps";
 import { tServer } from "@/lib/preferences";
+import { requirePageEdit } from "@/lib/permissions";
 
 export default async function EditMapPage({
   params,
 }: {
   params: { worldId: string; mapId: string };
 }) {
+  await requirePageEdit(params.worldId);
   const [map, parents, regions] = await Promise.all([
     prisma.worldMap.findUnique({ where: { id: params.mapId } }),
     prisma.worldMap.findMany({

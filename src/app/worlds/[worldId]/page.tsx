@@ -6,6 +6,8 @@ import { PageHeader } from "@/components/shell/PageHeader";
 import { formatYear } from "@/lib/slug";
 import { cn } from "@/lib/cn";
 import { tServer } from "@/lib/preferences";
+import { assetUrl } from "@/lib/assetUrl";
+import { CommentSection } from "@/components/comments/CommentSection";
 
 export const dynamic = "force-dynamic";
 
@@ -62,9 +64,9 @@ export default async function WorldOverviewPage({
     <>
       <div className="card relative mb-6 overflow-hidden">
         <div className="relative aspect-[16/5] w-full bg-ink-800">
-          {world.coverImage ? (
+            {world.coverImage ? (
             <Image
-              src={world.coverImage}
+              src={assetUrl(world.coverImage) ?? ""}
               alt={world.name}
               fill
               sizes="100vw"
@@ -150,6 +152,13 @@ export default async function WorldOverviewPage({
           }))}
         />
       </div>
+
+      <CommentSection
+        worldId={world.id}
+        entityType="WORLD"
+        entityId={world.id}
+        revalidate={`/worlds/${world.id}`}
+      />
     </>
   );
 }

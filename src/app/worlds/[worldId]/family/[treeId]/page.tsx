@@ -12,6 +12,9 @@ import {
   removeFamilyMember,
 } from "@/app/actions/family";
 import { tServer } from "@/lib/preferences";
+import { assetUrl } from "@/lib/assetUrl";
+import { CommentSection } from "@/components/comments/CommentSection";
+import { getWorldAccess } from "@/lib/permissions";
 
 export const dynamic = "force-dynamic";
 
@@ -32,6 +35,8 @@ export default async function FamilyTreePage({
   });
   if (!tree || tree.worldId !== params.worldId) notFound();
 
+  const access = await getWorldAccess(params.worldId);
+  const canEdit = !!access?.canEdit;
   const allCharacters = await prisma.character.findMany({
     where: { worldId: params.worldId },
     orderBy: { name: "asc" },
@@ -48,7 +53,7 @@ export default async function FamilyTreePage({
     id: m.id,
     characterId: m.characterId,
     name: m.character.name,
-    portrait: m.character.portrait,
+    portrait: assetUrl(m.character.portrait),
     birthYear: m.character.birthYear,
     deathYear: m.character.deathYear,
     x: m.x,
@@ -62,11 +67,13 @@ export default async function FamilyTreePage({
         title={tree.name}
         description={tree.description ?? undefined}
         actions={
-          <DeleteButton
-            action={remove}
-            redirectTo={`/worlds/${params.worldId}/family`}
-            confirmText={tServer("family.deleteConfirm", { name: tree.name })}
-          />
+          canEdit ? (
+            <DeleteButton
+              action={remove}
+              redirectTo={`/worlds/${params.worldId}/family`}
+              confirmText={tServer("family.deleteConfirm", { name: tree.name })}
+            />
+          ) : null
         }
       />
 
@@ -98,17 +105,19 @@ export default async function FamilyTreePage({
           <h2 className="heading-display border-b border-ink-700/60 px-5 py-3 text-sm">
             {tServer("family.section.members")}
           </h2>
-          <form action={addMember} className="flex gap-2 border-b border-ink-700/60 p-4">
-            <select className="input flex-1" name="characterId" required>
-              <option value="">{tServer("family.addMember")}</option>
-              {addable.map((c) => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
-            </select>
-            <button className="btn-primary" type="submit" disabled={addable.length === 0}>
-              {tServer("family.add")}
-            </button>
-          </form>
+          {canEdit ? (
+            <form action={addMember} className="flex gap-2 border-b border-ink-700/60 p-4">
+              <select className="input flex-1" name="characterId" required>
+                <option value="">{tServer("family.addMember")}</option>
+                {addable.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+              <button className="btn-primary" type="submit" disabled={addable.length === 0}>
+                {tServer("family.add")}
+              </button>
+            </form>
+          ) : null}
           {tree.members.length === 0 ? (
             <p className="px-5 py-4 text-sm text-ink-400">{tServer("family.empty.members")}</p>
           ) : (
@@ -131,14 +140,16 @@ export default async function FamilyTreePage({
                     >
                       {m.character.name}
                     </Link>
-                    <DeleteButton
-                      action={removeMem}
-                      label={tServer("family.remove")}
-                      confirmText={tServer("family.removeMemberConfirm", {
-                        name: m.character.name,
-                      })}
-                      className="text-xs text-blood-500 hover:underline"
-                    />
+                    {canEdit ? (
+                      <DeleteButton
+                        action={removeMem}
+                        label={tServer("family.remove")}
+                        confirmText={tServer("family.removeMemberConfirm", {
+                          name: m.character.name,
+                        })}
+                        className="text-xs text-blood-500 hover:underline"
+                      />
+                    ) : null}
                   </li>
                 );
               })}
@@ -150,30 +161,32 @@ export default async function FamilyTreePage({
           <h2 className="heading-display border-b border-ink-700/60 px-5 py-3 text-sm">
             {tServer("family.section.relationships")}
           </h2>
-          <form
-            action={addEdge}
-            className="grid grid-cols-1 gap-2 border-b border-ink-700/60 p-4 sm:grid-cols-4"
-          >
-            <select className="input sm:col-span-1" name="type" defaultValue="parent">
-              <option value="parent">{tServer("family.relation.parent")}</option>
-              <option value="spouse">{tServer("family.relation.spouse")}</option>
-            </select>
-            <select className="input sm:col-span-1" name="fromId" required>
-              <option value="">{tServer("family.from")}</option>
-              {tree.members.map((m) => (
-                <option key={m.id} value={m.id}>{m.character.name}</option>
-              ))}
-            </select>
-            <select className="input sm:col-span-1" name="toId" required>
-              <option value="">{tServer("family.to")}</option>
-              {tree.members.map((m) => (
-                <option key={m.id} value={m.id}>{m.character.name}</option>
-              ))}
-            </select>
-            <button className="btn-primary sm:col-span-1" type="submit">
-              {tServer("family.link")}
-            </button>
-          </form>
+          {canEdit ? (
+            <form
+              action={addEdge}
+              className="grid grid-cols-1 gap-2 border-b border-ink-700/60 p-4 sm:grid-cols-4"
+            >
+              <select className="input sm:col-span-1" name="type" defaultValue="parent">
+                <option value="parent">{tServer("family.relation.parent")}</option>
+                <option value="spouse">{tServer("family.relation.spouse")}</option>
+              </select>
+              <select className="input sm:col-span-1" name="fromId" required>
+                <option value="">{tServer("family.from")}</option>
+                {tree.members.map((m) => (
+                  <option key={m.id} value={m.id}>{m.character.name}</option>
+                ))}
+              </select>
+              <select className="input sm:col-span-1" name="toId" required>
+                <option value="">{tServer("family.to")}</option>
+                {tree.members.map((m) => (
+                  <option key={m.id} value={m.id}>{m.character.name}</option>
+                ))}
+              </select>
+              <button className="btn-primary sm:col-span-1" type="submit">
+                {tServer("family.link")}
+              </button>
+            </form>
+          ) : null}
           {tree.edges.length === 0 ? (
             <p className="px-5 py-4 text-sm text-ink-400">{tServer("family.empty.relations")}</p>
           ) : (
@@ -201,12 +214,14 @@ export default async function FamilyTreePage({
                       </span>{" "}
                       {to?.character.name}
                     </span>
-                    <DeleteButton
-                      action={removeE}
-                      label={tServer("family.remove")}
-                      confirmText={tServer("family.removeConfirm")}
-                      className="text-xs text-blood-500 hover:underline"
-                    />
+                    {canEdit ? (
+                      <DeleteButton
+                        action={removeE}
+                        label={tServer("family.remove")}
+                        confirmText={tServer("family.removeConfirm")}
+                        className="text-xs text-blood-500 hover:underline"
+                      />
+                    ) : null}
                   </li>
                 );
               })}
@@ -214,6 +229,13 @@ export default async function FamilyTreePage({
           )}
         </section>
       </div>
+
+      <CommentSection
+        worldId={params.worldId}
+        entityType="FAMILY_TREE"
+        entityId={tree.id}
+        revalidate={`/worlds/${params.worldId}/family/${tree.id}`}
+      />
     </>
   );
 }

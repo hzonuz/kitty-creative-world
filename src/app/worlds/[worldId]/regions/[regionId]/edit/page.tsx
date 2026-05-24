@@ -4,12 +4,14 @@ import { PageHeader } from "@/components/shell/PageHeader";
 import { RegionForm } from "@/components/regions/RegionForm";
 import { updateRegion } from "@/app/actions/regions";
 import { tServer } from "@/lib/preferences";
+import { requirePageEdit } from "@/lib/permissions";
 
 export default async function EditRegionPage({
   params,
 }: {
   params: { worldId: string; regionId: string };
 }) {
+  await requirePageEdit(params.worldId);
   const [region, characters, factions] = await Promise.all([
     prisma.region.findUnique({
       where: { id: params.regionId },

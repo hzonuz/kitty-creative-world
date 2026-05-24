@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { saveUpload } from "@/lib/uploads";
+import { requireWorldAccess } from "@/lib/permissions";
 
 function readForm(formData: FormData) {
   const name = String(formData.get("name") ?? "").trim();
@@ -27,19 +28,20 @@ function numOrNull(v: FormDataEntryValue | null): number | null {
 }
 
 export async function createCharacter(worldId: string, formData: FormData) {
+  await requireWorldAccess(worldId, "editor");
   const data = readForm(formData);
   if (!data.name) throw new Error("Name is required");
   const portrait = formData.get("portrait") as File | null;
-  let portraitPath: string | null = null;
+  let portraitKey: string | null = null;
   if (portrait && portrait.size > 0) {
-    portraitPath = await saveUpload(portrait, "portraits");
+    portraitKey = await saveUpload(worldId, portrait, "portraits");
   }
 
   const c = await prisma.character.create({
     data: {
       worldId,
       ...data,
-      portrait: portraitPath,
+      portrait: portraitKey,
     },
   });
 
@@ -52,19 +54,20 @@ export async function updateCharacter(
   id: string,
   formData: FormData,
 ) {
+  await requireWorldAccess(worldId, "editor");
   const data = readForm(formData);
   if (!data.name) throw new Error("Name is required");
   const portrait = formData.get("portrait") as File | null;
-  let portraitPath: string | undefined;
+  let portraitKey: string | undefined;
   if (portrait && portrait.size > 0) {
-    portraitPath = await saveUpload(portrait, "portraits");
+    portraitKey = await saveUpload(worldId, portrait, "portraits");
   }
 
   await prisma.character.update({
     where: { id },
     data: {
       ...data,
-      ...(portraitPath ? { portrait: portraitPath } : {}),
+      ...(portraitKey ? { portrait: portraitKey } : {}),
     },
   });
 
@@ -74,6 +77,7 @@ export async function updateCharacter(
 }
 
 export async function deleteCharacter(worldId: string, id: string) {
+  await requireWorldAccess(worldId, "editor");
   await prisma.character.delete({ where: { id } });
   revalidatePath(`/worlds/${worldId}/characters`);
 }

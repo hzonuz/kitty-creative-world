@@ -4,12 +4,14 @@ import { PageHeader } from "@/components/shell/PageHeader";
 import { EventForm } from "@/components/timeline/EventForm";
 import { updateEvent } from "@/app/actions/timeline";
 import { tServer } from "@/lib/preferences";
+import { requirePageEdit } from "@/lib/permissions";
 
 export default async function EditEventPage({
   params,
 }: {
   params: { worldId: string; eventId: string };
 }) {
+  await requirePageEdit(params.worldId);
   const [event, regions, factions, characters] = await Promise.all([
     prisma.timelineEvent.findUnique({
       where: { id: params.eventId },

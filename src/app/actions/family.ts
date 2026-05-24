@@ -3,8 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { requireWorldAccess } from "@/lib/permissions";
 
 export async function createFamilyTree(worldId: string, formData: FormData) {
+  await requireWorldAccess(worldId, "editor");
   const name = String(formData.get("name") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim() || null;
   if (!name) throw new Error("Name is required");
@@ -21,6 +23,7 @@ export async function updateFamilyTree(
   id: string,
   formData: FormData,
 ) {
+  await requireWorldAccess(worldId, "editor");
   const name = String(formData.get("name") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim() || null;
   if (!name) throw new Error("Name is required");
@@ -32,6 +35,7 @@ export async function updateFamilyTree(
 }
 
 export async function deleteFamilyTree(worldId: string, id: string) {
+  await requireWorldAccess(worldId, "editor");
   await prisma.familyTree.delete({ where: { id } });
   revalidatePath(`/worlds/${worldId}/family`);
 }
@@ -41,6 +45,7 @@ export async function addFamilyMember(
   treeId: string,
   formData: FormData,
 ) {
+  await requireWorldAccess(worldId, "editor");
   const characterId = String(formData.get("characterId") ?? "").trim();
   if (!characterId) throw new Error("Pick a character");
   await prisma.familyMember.upsert({
@@ -56,6 +61,7 @@ export async function removeFamilyMember(
   treeId: string,
   memberId: string,
 ) {
+  await requireWorldAccess(worldId, "editor");
   await prisma.familyMember.delete({ where: { id: memberId } });
   revalidatePath(`/worlds/${worldId}/family/${treeId}`);
 }
@@ -65,6 +71,7 @@ export async function addFamilyEdge(
   treeId: string,
   formData: FormData,
 ) {
+  await requireWorldAccess(worldId, "editor");
   const fromId = String(formData.get("fromId") ?? "").trim();
   const toId = String(formData.get("toId") ?? "").trim();
   const type = String(formData.get("type") ?? "parent").trim();
@@ -81,19 +88,22 @@ export async function removeFamilyEdge(
   treeId: string,
   edgeId: string,
 ) {
+  await requireWorldAccess(worldId, "editor");
   await prisma.familyEdge.delete({ where: { id: edgeId } });
   revalidatePath(`/worlds/${worldId}/family/${treeId}`);
 }
 
 export async function updateMemberPosition(
+  worldId: string,
   treeId: string,
   memberId: string,
   x: number,
   y: number,
 ) {
+  await requireWorldAccess(worldId, "editor");
   await prisma.familyMember.update({
     where: { id: memberId },
     data: { x, y },
   });
-  revalidatePath(`/worlds/${treeId}`); // not strictly required
+  revalidatePath(`/worlds/${worldId}/family/${treeId}`);
 }

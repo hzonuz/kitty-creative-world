@@ -4,12 +4,14 @@ import { PageHeader } from "@/components/shell/PageHeader";
 import { CharacterForm } from "@/components/characters/CharacterForm";
 import { updateCharacter } from "@/app/actions/characters";
 import { tServer } from "@/lib/preferences";
+import { requirePageEdit } from "@/lib/permissions";
 
 export default async function EditCharacterPage({
   params,
 }: {
   params: { worldId: string; characterId: string };
 }) {
+  await requirePageEdit(params.worldId);
   const [character, factions, regions] = await Promise.all([
     prisma.character.findUnique({ where: { id: params.characterId } }),
     prisma.faction.findMany({
